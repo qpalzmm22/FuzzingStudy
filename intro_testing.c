@@ -105,10 +105,9 @@ int* createRandArray(int size){
     int * rand_array;
     time_t t;
     srand((unsigned) time(&t));
-    int arr_size = rand() % MAX_ARRAY_SIZE;
-    rand_array = (int*) malloc(arr_size * sizeof(int));
+    rand_array = (int*) malloc(size * sizeof(int));
 
-    for(int i = 0 ; i < arr_size; i++){
+    for(int i = 0 ; i < size; i++){
         rand_array[i] = rand() % INT_MAX;
     }
 
@@ -291,7 +290,7 @@ int main(){
     // Ex.2. part2
     for(int i = 0 ; i < 1000; i++){
         srand((unsigned) time(&t));
-        arr_size = rand() % MAX_ARRAY_SIZE;
+        arr_size = rand() % INT_MAX;
         rand_arr = createRandArray(arr_size);
         output_arr = shellsort(rand_arr, arr_size);
         assert(is_sorted(rand_arr, arr_size) != 0);
