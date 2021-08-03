@@ -18,7 +18,7 @@ int main()
     int arr_size;
     int * rand_arr;
 
-    srand(0);
+    srand(time(0));
 
     // Manual Test Cases
     int input_arrs[3][7] = {{0,5,2,6,8,3,1},{6,2,1,5,7,8,3},{4,4,5,2,1,3,4}};

@@ -1,9 +1,12 @@
 #include <stdio.h>
 #include <math.h>
+/* 
+ * Fuzzer library
+ */
 
-// runs bc in subprocess
 
-int main(){
-    
-    return 0;
+
+char * fuzzer(int max_length int char_start, int char_range){
+    int string_length ;
 }
+
