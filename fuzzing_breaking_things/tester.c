@@ -1,4 +1,4 @@
-#include "fuzzer.h"
+#include "fuzzer.c"
 
 //#define FUZZER
 #define MKDTMP
@@ -25,7 +25,7 @@ int main()
 	// mkdtemp
 	#ifdef MKDTMP
 	
-	call_sub_process();
+	mkfuzzed_tmp();
 	
 	#endif // !PRACTICE
 

@@ -5,11 +5,8 @@
 #include <string.h>
 
 
-/*
- *
- */
-
-char * fuzzer(int max_length, int char_start, int char_range){
+char * fuzzer(int max_length, int char_start, int char_range)
+{
 	char * rand_arr;
 	unsigned int strlen;	
 
@@ -24,11 +21,12 @@ char * fuzzer(int max_length, int char_start, int char_range){
 	return rand_arr;
 }
 
-void call_sub_process(){
+void mkfuzzed_tmp()
+{
 	char basename[] = "input.txt";
 	char template[] = "temp_XXXXXX";
 	char deliminator[] = "/";
-	char *p_dir_name = (char*) malloc(100);
+	char *p_dir_name = (char*) malloc( 100 * sizeof(char));
 	
 	strcpy(p_dir_name, mkdtemp(template));
 	
@@ -36,7 +34,7 @@ void call_sub_process(){
 	strcat(p_dir_name, basename);
 	printf("%s\n", p_dir_name);
 	
-	FILE *fp = fopen(p_dir_name, "wr");
+	FILE *fp = fopen(p_dir_name, "w+");
 	
 	if(fp == 0x0){
 		perror("Error opening file");
@@ -46,18 +44,24 @@ void call_sub_process(){
 	char buffer[101];
 	// Needs to be freed
 	char * rand_arr = fuzzer(100, 32, 32);
-	int n;
 
-
-	//while(n = fwrite(rand_arr,))
-	//fwrite(rand_arr, fp);
 	fputs(rand_arr, fp);
-	fgets(buffer ,100, fp);
-
-	printf("%s\n",buffer);
 	
 	free(rand_arr);
-		
 	fclose(fp);
 	
+	fp = fopen(p_dir_name, "r");
+	
+	if(fp == 0x0){
+		perror("Error Opening File");
+		exit(1);
+	}
+	
+	fgets(buffer, 100, fp);
+
+	printf("%s\n",buffer);
+		
+	fclose(fp);
 }
+
+
