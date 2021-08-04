@@ -1,11 +1,18 @@
-#include "fuzzer.c"
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 
-//#define FUZZER
-#define MKDTMP
+
+#include "../include/my_fileIO.h"
+#include "../include/fuzzer.h"
+
+
+//#define CRTSUBPROC
 
 int main()
 {
-	#ifdef FUZZER
+	srand(time(0x0));
+#ifdef FUZZER
 	// Fuzzer
 	char * rand_char_arr;
 	// 10 fuzzer strings
@@ -20,13 +27,16 @@ int main()
 	rand_char_arr = fuzzer(1000, 97, 26);
    	printf("%s\n",rand_char_arr);
 	free(rand_char_arr);
-	#endif
+#endif
 	
 	// mkdtemp
-	#ifdef MKDTMP
+#ifdef MKDTMP
 	
 	mkfuzzed_tmp();
 	
-	#endif // !PRACTICE
+#endif // !PRACTICE
 
+#ifdef CRTSUBPROC
+	create_subprocess();
+#endif
 }

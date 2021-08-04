@@ -1,6 +1,9 @@
 {
     "files.associations": {
         "cmath": "c",
-        "unistd.h": "c"
+        "unistd.h": "c",
+        "time.h": "c",
+        "my_fileio.h": "c",
+        "fuzzer.h": "c"
     }
 }
