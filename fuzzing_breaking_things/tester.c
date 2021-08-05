@@ -3,11 +3,27 @@
 #include <time.h>
 
 
-#include "../include/my_fileIO.h"
-#include "../include/fuzzer.h"
+#include "./include/my_fileIO.h"
+#include "./include/fuzzer.h"
 
-
+//#define FUZZER
 //#define CRTSUBPROC
+//#define CRTSUBPROC
+
+void long_running_fuzzing(int trials)
+{
+	// creates tmp directory
+	char * dir_name = create_tmp_dir();
+
+	for(int i = 0 ; i < trials; i++){
+		// Make [trials] input files
+		pfile_info p_file_info = mkfuzzed_file(dir_name, i);
+		
+		// processes make input files
+		create_subprocess(p_file_info, i);
+	}
+
+}
 
 int main()
 {
@@ -28,15 +44,11 @@ int main()
    	printf("%s\n",rand_char_arr);
 	free(rand_char_arr);
 #endif
-	
-	// mkdtemp
-#ifdef MKDTMP
-	
-	mkfuzzed_tmp();
-	
-#endif // !PRACTICE
-
 #ifdef CRTSUBPROC
 	create_subprocess();
 #endif
+	
+	long_running_fuzzing(100);	
 }
+
+

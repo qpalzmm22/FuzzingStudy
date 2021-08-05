@@ -1,10 +1,14 @@
-// #3
-#include "../include/fuzzer.h"
+
 #include "../include/my_fileIO.h"
+#include "../include/fuzzer.h"
 
 #define PROG_NAME "bc"
 
-//#define DEBUG
+#define READEND 0
+#define WRITEEND 1
+
+
+#define DEBUG
 
 char * fuzzer(int max_length, int char_start, int char_range)
 {
@@ -23,99 +27,42 @@ char * fuzzer(int max_length, int char_start, int char_range)
 	return rand_arr;
 }
 
-// returns fd of fuzzed input
-pfile_info mkfuzzed_tmp()
-{
-	char basename[] = "input.txt";
-	char template[] = "temp_XXXXXX";
-	char deliminator[] = "/";
-	char *p_dir_name = (char*) malloc( PATH_MAX * sizeof(char));
-	
-	strcpy(p_dir_name, mkdtemp(template));
-	
-	strcat(p_dir_name, deliminator);
-	strcat(p_dir_name, basename);
-	printf("%s\n", p_dir_name);
-	
-	FILE *fp = fopen(p_dir_name, "w+");
-	
-	if(fp == 0x0){
-		perror("Error opening file");
-		exit(1);
-	}
-
-	// Needs to be freed
-	char * rand_arr = fuzzer(100, 32, 32);
-
-	// fputs(rand_arr, fp);
-	// [!] Does not consider rand_arr obtaining \x00;
-	ssize_t fuzzed_len = strlen(rand_arr);
-	if (my_fwrite(rand_arr, fuzzed_len, fp) != fuzzed_len ){
-		fprintf(stderr, "ERROR in my_fwrite");
-	}
-	 
-	free(rand_arr);
-	int fd = fileno(fp);
-	fclose(fp);
-
-	file_info * pfile_info = malloc(sizeof(file_info));
-	strcpy(pfile_info->file_path, p_dir_name);
-	pfile_info->fd = fd;
-#ifdef DEBUG	
-	fp = fopen(p_dir_name, "r");
-	
-	if(fp == 0x0){
-		perror("Error Opening File");
-		exit(1);
-	}
-
-	char buffer[101];
-	if (my_fread(buffer, fuzzed_len, fp) != fuzzed_len ){
-		fprintf(stderr, "ERROR in my_fread");
-	}
-	printf("%s\n",buffer);
-	printf("fd : %d\n", fd);
-
-	fclose(fp);
-
-	printf("filename : %s\n",pfile_info->file_path);
-	printf("fd : %d\n", pfile_info->fd);
-#endif
-	free(p_dir_name);
-	return pfile_info;
-}
-
-
 // link the stdin, stderr, stdout and execute bc
 // stdin << fuzzer
 // stdout << temp/fuzz_stdout
 // stderr << temp/fuzz_stderr
-void do_work()
+void make_out_files(pfile_info p_file_info, int i)
 {
-	pfile_info p_file_info = mkfuzzed_tmp();
+	// create output file
+	// create error file
 	
-	//dup2( in_fd, stdin);
-	char in_path[PATH_MAX];
+	char out_file_name[32]; // len = 19
+	char err_file_name[32];
+	sprintf(out_file_name, "%s%d", "result/outputs/output", i);
+	sprintf(err_file_name, "%s%d", "result/errors/error", i);
 	
-	strcpy(in_path, p_file_info->file_path);
-	free(p_file_info);
-
-	char out_path[PATH_MAX];
-	char err_path[PATH_MAX];
-	fprintf(out_path, "%s/%s", in_path, "/../output");
-	fprintf(err_path, "%s/%s", in_path, "/../error");
+	int devnull = open("/dev/null", O_RDONLY);
+	dup2(devnull, 0);
 	
-
-	int fd = create_write_file();
-	dup2(fd, stderr);
-	execlp(PROG_NAME, PROG_NAME, in_path, NULL);
+	int out_fd = open(out_file_name, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+	if(out_fd < 0){
+		perror("ERROR in creating output.txt");
+	}
+	int err_fd = open(err_file_name, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+	if(err_fd < 0){
+		perror("ERROR in creating error.txt");	
+	}
+	// Redirect them
+	dup2(out_fd, 1);
+	dup2(err_fd, 2);
+	execlp(PROG_NAME, PROG_NAME, p_file_info->file_path, NULL);
 }
 
 
-
 // creates subprocess
-void create_subprocess()
+void create_subprocess(pfile_info p_file_info, int i)
 {
+	int status;
 	int pid = fork();
 	switch( pid ){
 		case -1 : 
@@ -123,11 +70,16 @@ void create_subprocess()
 			break;
 
 		case 0 : // child process
-			do_work();
+			make_out_files(p_file_info, i);
 			break;
 
 		default :
-			wait(0);
-			printf("Done!\n");
+			// return the return code.
+			wait(&status);
+			write_ret_code(status, i);
+#ifdef DEBUG
+			printf("created pid[%d]\n", pid);
+#endif	
 	}
 }
+

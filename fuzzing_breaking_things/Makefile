@@ -1,7 +1,7 @@
 all: fuzzer
 
-fuzzer : src/fuzzer.c src/tester.c src/my_fileIO.c
-	gcc -o fuzzer src/tester.c src/fuzzer.c src/my_fileIO.c
+fuzzer : src/fuzzer.c tester.c src/my_fileIO.c
+	gcc -o fuzzer tester.c src/fuzzer.c src/my_fileIO.c
 
 clean :
-	rm -r temp_* fuzzer
+	rm -r tmp_* fuzzer result/errors/* result/outputs/*

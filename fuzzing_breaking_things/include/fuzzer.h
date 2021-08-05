@@ -4,17 +4,9 @@
 #include <math.h>
 #include <string.h>
 #include <limits.h>
+#include <sys/wait.h>
+#include <fcntl.h>
 
-//#define FUZZER
-//#define MKDTMP
-#define CRTSUBPROC
-
-typedef struct _file_info{
-	char file_path[PATH_MAX];
-	int fd;
-}file_info, *pfile_info;
-
+void make_out_files(pfile_info p_file_info, int i);
 char * fuzzer(int max_length, int char_start, int char_range);
-pfile_info mkfuzzed_tmp();
-void do_work();
-void create_subprocess();
+void create_subprocess(pfile_info p_file_info, int i);
