@@ -9,4 +9,3 @@
 
 void make_out_files(pfile_info p_file_info, int i);
 char * fuzzer(int max_length, int char_start, int char_range);
-void create_subprocess(pfile_info p_file_info, int i);
