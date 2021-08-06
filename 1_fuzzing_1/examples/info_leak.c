@@ -43,7 +43,7 @@ char * make_secret()
     return secrets ;
 }
 
-char * heartbleed(char * reply, ssize_t length, char * memory)
+char * heartbeat(char * reply, ssize_t length, char * memory)
 {
     
     if (strlen(reply) > 16){
@@ -68,9 +68,9 @@ int main()
     srand(time(NULL));
 
     char * secrets = make_secret();
-    char * pot = heartbleed("potato", strlen("potato"), secrets);
-    char * bird = heartbleed("bird", strlen("bird"), secrets);
-    char * hat = heartbleed("hat", 500, secrets);
+    char * pot = heartbeat("potato", strlen("potato"), secrets);
+    char * bird = heartbeat("bird", strlen("bird"), secrets);
+    char * hat = heartbeat("hat", 500, secrets);
     // safe
     printf("%s\n", pot) ;
     printf("%s\n", bird) ;
@@ -82,6 +82,6 @@ int main()
     free(pot);
     free(bird);
     free(hat);
-    
+
     return 0 ;
 }
