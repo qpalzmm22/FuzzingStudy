@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 #include "../include/fuzzer.h"
 
@@ -62,6 +63,8 @@ char * heartbleed(char * reply, ssize_t length, char * memory)
 
 int main()
 {
+    srand(time(NULL));
+
     char * secrets = make_secret();
     // safe
     printf("%s\n", heartbleed("potato", strlen("potato"), secrets)) ;
