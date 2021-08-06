@@ -6,6 +6,7 @@
 #include <limits.h>
 #include <sys/wait.h>
 #include <fcntl.h>
+#include <assert.h>
 
 
 
@@ -14,3 +15,7 @@ char * fuzzer(int max_length, int char_start, int char_range);
 
 // fuzzer(100, 32, 32)
 char *default_fuzzer();
+
+int fuzzer_n(int max_length, int char_start, int char_range, char **buf);
+
+int default_fuzzer_n(char **buf);

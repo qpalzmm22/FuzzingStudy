@@ -16,6 +16,7 @@ void crash_if_too_long(char *str)
 }
 
 // recieve input from user and allocate memory
+// `calloc` does similar job to this (checks for integer overflow).
 void alloc_in_size(char *in)
 { 
     printf("num : %s\n", in);
