@@ -3,8 +3,8 @@
 #include <time.h>
 
 
-#include "./include/my_fileIO.h"
-#include "./include/fuzzer.h"
+#include "../include/my_fileIO.h"
+#include "../include/fuzzer.h"
 
 #define PROG_NAME "bc"
 
@@ -21,11 +21,14 @@ int create_subproc_work(char* dir_name, pfile_info p_file_info, int i)
 {
 	int flag = 0;
 	int status;
-	int pipeout[2];
-	int pipeerr[2];
+	int pipe_in[2];
+	int pipe_out[2];
+	int pipe_err[2];
 
-	pipe(pipeout);
-	pipe(pipeerr);
+	pipe(pipe_in);
+	pipe(pipe_out);
+	pipe(pipe_err);
+
 
 	int pid = fork();
 	switch( pid ){
@@ -34,50 +37,74 @@ int create_subproc_work(char* dir_name, pfile_info p_file_info, int i)
 			break;
 
 		case 0 : // child process
+			dup2(pipe_in[READEND], STDIN_FILENO) ;
+			close(pipe_in[READEND]) ;
+			close(pipe_in[WRITEEND]);
 
-			close(pipeout[READEND]);
-			close(pipeerr[READEND]);
+			close(pipe_out[READEND]); 
+			close(pipe_err[READEND]);
 
-			int devnull = open("/dev/null", O_RDONLY);
-	
-			dup2(devnull, 0);
-
-			dup2(pipeout[WRITEEND], STDOUT_FILENO);
-			dup2(pipeerr[WRITEEND], STDERR_FILENO);
+			dup2(pipe_out[WRITEEND], STDOUT_FILENO);
+			dup2(pipe_err[WRITEEND], STDERR_FILENO);
 
 			execlp(PROG_NAME, PROG_NAME, p_file_info->file_path, NULL);
 			
 			break;
 
-		default :
+		default : // parent
+			close(pipe_in[WRITEEND]);
+			close(pipe_out[WRITEEND]);
+			close(pipe_err[WRITEEND]);
 
-			close(pipeout[WRITEEND]);
-			close(pipeerr[WRITEEND]);
+			// Receive inputs from user
+			// [!] Buf size fix
+
+			char out_file_name[32]; // len = 19
+			char err_file_name[32];
+			sprintf(out_file_name, "%s%s%d", dir_name, "/outputs/output", i);
+			sprintf(err_file_name, "%s%s%d", dir_name, "/errors/error", i);
+
+			FILE *fp =  fopen(out_file_name, "wb");
+			if(fp == 0){
+				perror("ERROR in creating output.txt");
+				exit(1);
+			}
+
+			char out_buff[1024];
+			ssize_t s;
+
+			while((s = read(pipe_out[READEND], out_buff, 1024)) > 0){
+				if(fwrite(out_buff, 1, s, fp) < s){
+					fprintf(stderr, "Error in making out files\n");
+				}
+			}
 			
+			close(pipe_out[READEND]);
+			fclose(fp);
+
+			fp =  fopen(err_file_name, "wb");
+			if(fp == 0){
+				perror("ERROR in creating output.txt");
+				exit(1);
+			}
+			char err_buff[1024];
+
+			while((s = read(pipe_err[READEND], err_buff, 1024)) > 0){
+				if(fwrite(err_buff, 1, s, fp) < s){
+					fprintf(stderr, "Error in making err files\n");
+				}
+			}
+			
+			fclose(fp);
+			
+			close(pipe_err[READEND]);
+
 			// return the return code.
 			wait(&status);
-
 			if(status != 0){
 				printf("%d - th input created %d error", i, status);
 				flag = 1;
 			}
-
-			// Receive inputs from user
-			// [!] Buf size fix
-			char out_buff[16284];
-			char err_buff[16284];
-			ssize_t out_n, err_n;
-
-			out_n = my_read(pipeout[READEND], out_buff);
-			err_n = my_read(pipeerr[READEND], err_buff);
-
-			close(pipeout[READEND]);
-			close(pipeerr[READEND]);
-
-
-			make_out_files(dir_name, i, out_buff, out_n, err_buff, err_n);
-
-
 #ifdef DEBUG
 			printf("created pid[%d]\n", pid);
 #endif	
@@ -127,5 +154,6 @@ int main()
 	printf("Bugs found : %d\n", long_running_fuzzing(100));	
 #endif
 }
+
 
 

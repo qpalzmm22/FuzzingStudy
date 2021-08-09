@@ -1,7 +1,10 @@
-all: bc_fuzzer buff_ovf llvm_ex no_llvm_ex info_leak prog_spec_check
+all: bc_fuzzer cat_fuzzer buff_ovf llvm_ex no_llvm_ex info_leak prog_spec_check runner
 
-bc_fuzzer : src/fuzzer.c tester.c src/my_fileIO.c
-	gcc -o bin/bc_fuzzer tester.c src/fuzzer.c src/my_fileIO.c
+bc_fuzzer : src/fuzzer.c test/tester.c src/my_fileIO.c
+	gcc -o bin/bc_fuzzer test/tester.c src/fuzzer.c src/my_fileIO.c
+
+cat_fuzzer : src/fuzzer.c test/test_fuzzer.c src/runner.c
+	gcc -o bin/cat_fuzzer test/test_fuzzer.c src/fuzzer.c src/runner.c 
 
 buff_ovf :	examples/buffer_vul.c src/fuzzer.c
 	gcc -o bin/buff_ovf examples/buffer_vul.c src/fuzzer.c -fno-stack-protector
@@ -18,6 +21,9 @@ info_leak : examples/info_leak.c
 
 prog_spec_check : examples/prog_spec_checker.c
 	gcc -o bin/prog_spec_check examples/prog_spec_checker.c 
+
+runner : src/runner.c test/test_runner.c 
+	gcc -o bin/runner test/test_runner.c src/runner.c
 
 clean :
 	rm -r bin/* tmp_* result/errors/* result/outputs/* 
