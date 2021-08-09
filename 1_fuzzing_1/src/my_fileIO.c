@@ -30,15 +30,35 @@ my_fread(void * ptr, ssize_t n, FILE * stream)
 }
 
 char 
-*create_tmp_dir()
+*create_tmp_dirs()
 {
 	char template[] = "tmp_XXXXXX";
 	//char *p_dir_name = mkdtemp(template);
-	char * p_dir_name = malloc( 32 * sizeof(char));
+	char * dir_name = malloc( 32 * sizeof(char));
 	
-	strcpy(p_dir_name, mkdtemp(template));	
+	strcpy(dir_name, mkdtemp(template));	
 
-	return p_dir_name;
+	char in_dir_path[32];
+	char out_dir_path[32];
+	char err_dir_path[32];
+
+	// make dirs
+	sprintf(in_dir_path, "%s%s", dir_name, "/inputs");
+	sprintf(out_dir_path, "%s%s", dir_name, "/outputs");
+	sprintf(err_dir_path, "%s%s", dir_name, "/errors");
+
+	if(mkdir(in_dir_path, S_IRWXU) != 0 ){
+		perror("ERROR in creating in directory");
+	} 
+	if(mkdir(out_dir_path, S_IRWXU) != 0 ){
+		perror("ERROR in creating out directory");
+	} 
+	if(mkdir(err_dir_path, S_IRWXU) != 0 ){
+		perror("ERROR in creating err directory");
+	} 
+
+
+	return dir_name;
 }
 
 void write_ret_code(int retcode, int i){
@@ -61,15 +81,15 @@ void write_ret_code(int retcode, int i){
 }
 
 // link the stdin, stderr, stdout and execute bc
-void make_out_files(pfile_info p_file_info, int i)
+void make_out_files(char *dir_name, pfile_info p_file_info, int i)
 {
-	
 	char out_file_name[32]; // len = 19
 	char err_file_name[32];
-	sprintf(out_file_name, "%s%d", "result/outputs/output", i);
-	sprintf(err_file_name, "%s%d", "result/errors/error", i);
+	sprintf(out_file_name, "%s%s%d", dir_name, "/outputs/output", i);
+	sprintf(err_file_name, "%s%s%d", dir_name, "/errors/error", i);
 	
 	int devnull = open("/dev/null", O_RDONLY);
+	
 	dup2(devnull, 0);
 	
 	int out_fd = open(out_file_name, O_WRONLY | O_CREAT | O_TRUNC, 0644);
@@ -92,10 +112,8 @@ void make_out_files(pfile_info p_file_info, int i)
 pfile_info
 mkfuzzed_file(char* dir_path, int iter)
 {
-	char file_name[32];
 	char file_path[PATH_MAX];
-	sprintf(file_name, "input%d.txt", iter);
-	sprintf(file_path, "%s/%s", dir_path, file_name);
+	sprintf(file_path, "%s%s%d", dir_path, "/inputs/input", iter);
 
 	
 	FILE *fp = fopen(file_path, "w+");

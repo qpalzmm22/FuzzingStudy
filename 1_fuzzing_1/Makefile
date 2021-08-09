@@ -1,7 +1,7 @@
-all: long_fuzzer buff_ovf llvm_ex no_llvm_ex info_leak prog_spec_check
+all: bc_fuzzer buff_ovf llvm_ex no_llvm_ex info_leak prog_spec_check
 
-long_fuzzer : src/fuzzer.c tester.c src/my_fileIO.c
-	gcc -o bin/fuzzer tester.c src/fuzzer.c src/my_fileIO.c
+bc_fuzzer : src/fuzzer.c tester.c src/my_fileIO.c
+	gcc -o bin/bc_fuzzer tester.c src/fuzzer.c src/my_fileIO.c
 
 buff_ovf :	examples/buffer_vul.c src/fuzzer.c
 	gcc -o bin/buff_ovf examples/buffer_vul.c src/fuzzer.c -fno-stack-protector

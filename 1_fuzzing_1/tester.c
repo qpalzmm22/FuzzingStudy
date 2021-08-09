@@ -11,7 +11,7 @@
 #define lONGFUZZ
 
 // creates subprocess
-int create_subproc_work(pfile_info p_file_info, int i)
+int create_subproc_work(char* dir_name, pfile_info p_file_info, int i)
 {
 	int flag = 0;
 	int status;
@@ -22,7 +22,7 @@ int create_subproc_work(pfile_info p_file_info, int i)
 			break;
 
 		case 0 : // child process
-			make_out_files(p_file_info, i);
+			make_out_files(dir_name, p_file_info, i);
 			break;
 
 		default :
@@ -44,7 +44,7 @@ int create_subproc_work(pfile_info p_file_info, int i)
 int long_running_fuzzing(int trials)
 {
 	// creates tmp directory
-	char * dir_name = create_tmp_dir();
+	char * dir_name = create_tmp_dirs();
 	int bug_count = 0;
 
 	for(int i = 0 ; i < trials; i++){
@@ -52,7 +52,7 @@ int long_running_fuzzing(int trials)
 		pfile_info p_file_info = mkfuzzed_file(dir_name, i);
 		
 		// processes make input files
-		bug_count += create_subproc_work(p_file_info, i);
+		bug_count += create_subproc_work(dir_name, p_file_info, i);
 		free(p_file_info);
 	}
 	free(dir_name);
@@ -78,9 +78,7 @@ int main()
    	printf("%s\n",rand_char_arr);
 	free(rand_char_arr);
 #endif
-#ifdef CRTSUBPROC
-	create_subprocess();
-#endif
+
 #ifdef lONGFUZZ
 	printf("Bugs found : %d\n", long_running_fuzzing(100));	
 #endif

@@ -51,6 +51,14 @@ p_airport_code create_node(char * code, char * name)
     return new_airport_code;
 }
 
+void free_list(){
+    p_airport_code itr;
+    for(itr = g_airport_info.head; itr != 0x0; ){
+        p_airport_code node_del = itr;
+        itr = itr->next;
+        free(node_del);
+    }
+}
 
 // adds node infront of the list (addFront)
 p_airport_code add_airport(char * code, char * city)
@@ -163,6 +171,9 @@ int main(){
     // repOk
     // airport_repOK()
     test2();
+
+
+    free_list();
 
     return 0;
 }
