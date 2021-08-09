@@ -3,6 +3,31 @@
 
 #define PROG_NAME "bc"
 
+ssize_t
+my_read(int fd, char* buf){
+
+	ssize_t s ;
+	ssize_t tot_size = 0 ;
+
+	while((s = read(fd, buf, 8192)) > 0){
+		tot_size += s;
+	}
+
+	return tot_size;
+}
+
+ssize_t
+my_write(int fd, char *buf, ssize_t n) {
+	
+	ssize_t sent = 0;
+
+	while(sent < n){
+		sent += write(fd, buf + sent, n - sent);
+	}
+
+	return sent;
+}
+
 // fwrite() safe version
 ssize_t
 my_fwrite(void * ptr, ssize_t n, FILE * stream)
@@ -80,32 +105,34 @@ void write_ret_code(int retcode, int i){
 	fclose(fp);
 }
 
-// link the stdin, stderr, stdout and execute bc
-void make_out_files(char *dir_name, pfile_info p_file_info, int i)
+// make output, error files
+void make_out_files(char *dir_name, int i, char* out_buff, ssize_t out_n, char* err_buff, ssize_t err_n)
 {
 	char out_file_name[32]; // len = 19
 	char err_file_name[32];
 	sprintf(out_file_name, "%s%s%d", dir_name, "/outputs/output", i);
 	sprintf(err_file_name, "%s%s%d", dir_name, "/errors/error", i);
 	
-	int devnull = open("/dev/null", O_RDONLY);
-	
-	dup2(devnull, 0);
-	
 	int out_fd = open(out_file_name, O_WRONLY | O_CREAT | O_TRUNC, 0644);
 	if(out_fd < 0){
 		perror("ERROR in creating output.txt");
 	}
+	if( my_write(out_fd, out_buff, out_n) != out_n){
+		fprintf(stderr, "Error in making out files\n");
+	}
+
+	close(out_fd);
+
 	int err_fd = open(err_file_name, O_WRONLY | O_CREAT | O_TRUNC, 0644);
 	if(err_fd < 0){
 		perror("ERROR in creating error.txt");	
 	}
 
-	// Redirect them
-	dup2(out_fd, 1);
-	dup2(err_fd, 2);
-	
-	execlp(PROG_NAME, PROG_NAME, p_file_info->file_path, NULL);
+	if( my_write(err_fd, err_buff, err_n) != err_n){
+		fprintf(stderr, "Error in making out files\n");
+	}
+
+	close(err_fd);
 }
 
 
@@ -141,26 +168,8 @@ mkfuzzed_file(char* dir_path, int iter)
 	file_info * pfile_info = malloc(sizeof(file_info));
 	strcpy(pfile_info->file_path, file_path);
 	pfile_info->fd = fd;
-#ifdef DEBUG	
-	fp = fopen(file_path, "r");
-	
-	if(fp == 0x0){
-		perror("Error Opening File");
-		exit(1);
-	}
 
-	char buffer[101];
-	if (my_fread(buffer, fuzzed_len, fp) != fuzzed_len ){
-		fprintf(stderr, "ERROR in my_fread");
-	}
-	printf("%s\n",buffer);
-	printf("fd : %d\n", fd);
 
-	fclose(fp);
-
-	printf("filename : %s\n",pfile_info->file_path);
-	printf("fd : %d\n", pfile_info->fd);
-#endif
 	return pfile_info;
 }
 
