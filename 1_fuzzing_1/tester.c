@@ -56,7 +56,7 @@ int create_subproc_work(char* dir_name, pfile_info p_file_info, int i)
 			
 			// return the return code.
 			wait(&status);
-			
+
 			if(status != 0){
 				printf("%d - th input created %d error", i, status);
 				flag = 1;
@@ -64,8 +64,8 @@ int create_subproc_work(char* dir_name, pfile_info p_file_info, int i)
 
 			// Receive inputs from user
 			// [!] Buf size fix
-			char out_buff[8192];
-			char err_buff[8192];
+			char out_buff[16284];
+			char err_buff[16284];
 			ssize_t out_n, err_n;
 
 			out_n = my_read(pipeout[READEND], out_buff);

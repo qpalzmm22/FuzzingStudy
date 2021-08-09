@@ -9,7 +9,7 @@ my_read(int fd, char* buf){
 	ssize_t s ;
 	ssize_t tot_size = 0 ;
 
-	while((s = read(fd, buf, 8192)) > 0){
+	while((s = read(fd, buf, 32)) > 0){
 		tot_size += s;
 	}
 
