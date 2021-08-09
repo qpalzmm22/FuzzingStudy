@@ -48,6 +48,8 @@ void free_list(){
     for(itr = g_airport_info.head; itr != 0x0; ){
         p_airport_code node_del = itr;
         itr = itr->next;
+        free(node_del->code);
+        free(node_del->name);
         free(node_del);
     }
 }
