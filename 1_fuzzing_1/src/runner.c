@@ -17,6 +17,7 @@ pRunner runner_init()
 {
     pRunner runner = (pRunner)malloc(sizeof(Runner));
     assert(runner);
+    // TODO : better this.
     strcpy(runner->fail, FAIL);
     strcpy(runner->pass, PASS);
     strcpy(runner->unresolved, UNRESOLVED);
@@ -67,6 +68,7 @@ int pr_run_process(pProgram_Runner runner,  char * in_buff)
     int pipe_out[2];
     int pipe_err[2];
     
+    // PIPE check
     pipe(pipe_in);
     pipe(pipe_out);
     pipe(pipe_err);
@@ -85,7 +87,7 @@ int pr_run_process(pProgram_Runner runner,  char * in_buff)
 
             dup2(pipe_in[READEND], STDIN_FILENO) ;      
             close(pipe_in[READEND]) ;
-            close(pipe_in[WRITEEND]);
+            close(pipe_in[WRITEEND]) ;
 
             dup2(pipe_out[WRITEEND], STDOUT_FILENO) ;
             dup2(pipe_err[WRITEEND], STDERR_FILENO) ;
@@ -101,20 +103,23 @@ int pr_run_process(pProgram_Runner runner,  char * in_buff)
 
             int status;
             wait(&status);
+            runner->status = status;
 
             // Assumes that the output is less than 1024...
-            //char out_buff[1024];
+            
             runner->outputs = (char*) malloc( 1024 * sizeof(char));
 
-            while((s = read(pipe_out[READEND], runner->outputs, 1024)) > 0){
+            // TODO realloc
+            while((s = read(pipe_out[READEND], runner->outputs, 1023)) > 0){
 			}
-
-            //char err_buff[1024];
-
+            runner->outputs[1023] = '\0';
+            
             runner->errors = (char*) malloc( 1024* sizeof(char));
-
-            while((s = read(pipe_err[READEND],  runner->errors, 1024)) > 0){
+            // TODO realloc
+            while((s = read(pipe_err[READEND],  runner->errors, 1023)) > 0){
 			}
+
+            runner->outputs[1023] = '\0';
 
             close(pipe_out[READEND]) ;
             close(pipe_err[READEND]) ;

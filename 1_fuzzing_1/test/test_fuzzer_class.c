@@ -21,6 +21,7 @@ void test_rand_fuzzer_class()
     pRandom_Fuzzer rand_fuzzer = random_fuzzer_init();
     rand_fuzzer->min_length = 20;
     rand_fuzzer->max_length = 20;
+    
     for(int i = 0; i < 10; i++){
         char * fuzzed_str = rand_fuzzer->f_fuzz(rand_fuzzer);
         printf("%s\n", fuzzed_str);
@@ -34,7 +35,9 @@ void test_rand_fuzzer_class()
         p_result result = cat->f_run(cat, fuzzed);
         assert(strcmp(result->str, fuzzed) == 0);
         assert(strcmp(result->status, PASS) == 0);
-        printf("args = %s, returncode = %d, stdout=%s, stderr=%s\n", cat->program, 0, cat->outputs, cat->errors);
+        printf("args = %s, returncode = %d, stdout=%s, stderr=%s\n", cat->program, cat->status, cat->outputs, cat->errors);
+        free(fuzzed);
+        free(result);
     }
 
     free(rand_fuzzer);
