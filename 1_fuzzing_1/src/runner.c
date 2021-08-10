@@ -3,12 +3,12 @@
 
 // ----------------- Runner Class --------------------
 
-p_result runner_run(char * inp)
+p_result runner_run(pRunner runner, char * inp)
 {
     // how to check if runner is initialized??
 
     p_result res_tup = (p_result)malloc(sizeof(result));
-    res_tup->input = inp;
+    res_tup->str = inp;
     res_tup->status = UNRESOLVED;
     return res_tup;
 }
@@ -20,18 +20,17 @@ pRunner runner_init()
     strcpy(runner->fail, FAIL);
     strcpy(runner->pass, PASS);
     strcpy(runner->unresolved, UNRESOLVED);
-    runner->func_p = (fp_run)runner_run;
+    runner->f_run = (fp_run)runner_run;
 
     return runner;
 }
-
 
 // ----------------- Runner Class --------------------
 
 pPrint_Runner print_runner_init()
 {
     pPrint_Runner runner = (pPrint_Runner)runner_init();
-    runner->func_p = (fp_run)print_Runner_run;
+    runner->f_run = (fp_run)print_Runner_run;
 
     return runner;
 }
@@ -39,42 +38,30 @@ pPrint_Runner print_runner_init()
 p_result print_Runner_run(pPrint_Runner runner, char * inp)
 {
     printf("%s\n", inp);
-    return runner_run(inp);
+    return runner_run((pRunner)runner, inp);
 }
 
 
 // ----------------- ProgramRunner Class --------------------
 
-pProgram_Runner program_runner_init()
+pProgram_Runner program_runner_init(char *prog_name)
 {
-    pProgram_Runner runner = (pProgram_Runner)runner_init();
-    runner->func_p = (fp_run) print_Runner_run;
+    pProgram_Runner runner = (pProgram_Runner)malloc(sizeof(Program_Runner)) ;
+    assert(runner) ;
+    strcpy(runner->fail, FAIL) ;
+    strcpy(runner->pass, PASS) ;
+    strcpy(runner->unresolved, UNRESOLVED) ;
+    strcpy(runner->program, prog_name) ;
 
+    runner->f_run = (fp_run) program_runner_run;
+    runner->f_run_proc = (fp_run_process) pr_run_process;
     return runner;
 }
 
-p_result program_runner_run(pProgram_Runner runner, char * inp){
-    p_result res_tup = (p_result)malloc(sizeof(result));
-    int status = runner->func_p2(runner, inp);
-    res_tup->input = inp;
-
-    if(status == 0){
-        res_tup->status = PASS;
-        printf("exit status : 0\n");
-    } else if (status < 0) {
-        res_tup->status = FAIL;
-        printf("exit status : less than 0 [%d]\n",status);
-    } else {
-        res_tup->status = UNRESOLVED;
-        printf("exit status : UNSOLVED[%d]\n",status);
-    }
-    return res_tup;
-}
-
 // short name for ProcessRunning_run_process
-int pr_run_process(char * prog_name, char * in_buff)
+int pr_run_process(pProgram_Runner runner,  char * in_buff)
 {
-    
+    char * prog_name = runner->program;
     //printf("prg: %sargv[1]:%s\n", prog_name, argv[1]);
     int pipe_in[2];
     int pipe_out[2];
@@ -115,16 +102,18 @@ int pr_run_process(char * prog_name, char * in_buff)
             int status;
             wait(&status);
 
-            char out_buff[1024];
-            
-            while((s = read(pipe_out[READEND], out_buff, 1024)) > 0){
-				printf("out_buff : %s\n", out_buff);
+            // Assumes that the output is less than 1024...
+            //char out_buff[1024];
+            runner->outputs = (char*) malloc( 1024 * sizeof(char));
+
+            while((s = read(pipe_out[READEND], runner->outputs, 1024)) > 0){
 			}
 
-            char err_buff[1024];
-            
-            while((s = read(pipe_err[READEND], err_buff, 1024)) > 0){
-				printf("err_buff : %s\n", err_buff);
+            //char err_buff[1024];
+
+            runner->errors = (char*) malloc( 1024* sizeof(char));
+
+            while((s = read(pipe_err[READEND],  runner->errors, 1024)) > 0){
 			}
 
             close(pipe_out[READEND]) ;
@@ -132,4 +121,20 @@ int pr_run_process(char * prog_name, char * in_buff)
 
             return status;
     }
+}
+
+p_result program_runner_run(pProgram_Runner runner, char * inp)
+{
+    p_result res_tup = (p_result)malloc(sizeof(result));
+    int status = runner->f_run_proc(runner, inp);
+    res_tup->str = inp;
+
+    if(status == 0){
+        res_tup->status = PASS;
+    } else if (status < 0) {
+        res_tup->status = FAIL;
+    } else {
+        res_tup->status = UNRESOLVED;
+    }
+    return res_tup;
 }

@@ -2,11 +2,6 @@
 #include "../include/my_fileIO.h"
 #include "../include/fuzzer.h"
 
-
-#define READEND 0
-#define WRITEEND 1
-
-
 // #define DEBUG
 
 char * fuzzer(int max_length, int char_start, int char_range)
@@ -53,7 +48,8 @@ char * random_fuzzer(int min_len, int max_len, int char_start, int char_range)
 }
 
 // buffer is allocated, so needs to be freed.
-char *default_rand_fuzzer(){
+char *default_rand_fuzzer()
+{
 	return random_fuzzer(10, 100, 32, 32); 
 }
 
