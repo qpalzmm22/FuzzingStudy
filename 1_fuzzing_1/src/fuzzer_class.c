@@ -68,7 +68,7 @@ char* random_fuzzer_fuzz(pRandom_Fuzzer random_fuzzer)
 	assert(rand_arr);
 
 	for(int i = 0; i < len; i++){
-		rand_arr[i] = char_start + rand() % (char_range);
+		rand_arr[i] = char_start + rand() % (char_range + 1);
 	}
 	rand_arr[len] = '\0';
 

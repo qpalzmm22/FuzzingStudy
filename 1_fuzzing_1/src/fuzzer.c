@@ -15,7 +15,7 @@ char * fuzzer(int max_length, int char_start, int char_range)
 	assert(rand_arr);
 
 	for(int i = 0; i < len; i++){
-		rand_arr[i] = char_start + rand() % (char_range);
+		rand_arr[i] = char_start + rand() % (char_range + 1);
 	}
 	rand_arr[len] = '\0';
 
@@ -40,7 +40,7 @@ char * random_fuzzer(int min_len, int max_len, int char_start, int char_range)
 	assert(rand_arr);
 
 	for(int i = 0; i < len; i++){
-		rand_arr[i] = char_start + rand() % (char_range);
+		rand_arr[i] = char_start + rand() % (char_range + 1);
 	}
 	rand_arr[len] = '\0';
 
@@ -65,7 +65,7 @@ int fuzzer_n(int max_length, int char_start, int char_range, char ** buffer)
 	assert(buffer);
 
 	for(int i = 0; i < len; i++){
-		(*buffer)[i] = char_start + rand() % (char_range);
+		(*buffer)[i] = char_start + rand() % (char_range + 1);
 	}
 	(*buffer)[len] = '\0';
 

@@ -28,6 +28,7 @@ typedef struct _Program_Runner{
     char program[16];
     char * outputs;
     char * errors;
+    int status;
     fp_run_process f_run_proc;
 }Program_Runner, *pProgram_Runner;
 
