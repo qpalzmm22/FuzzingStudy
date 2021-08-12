@@ -78,6 +78,7 @@ int pr_run_process(pProgram_Runner runner,  char * in_buff)
     switch(fork()){
         case -1 :
             perror("ERROR in fork");
+            exit(1);
             break;
         case 0 :   
             close(pipe_out[READEND]) ;
@@ -93,6 +94,8 @@ int pr_run_process(pProgram_Runner runner,  char * in_buff)
             dup2(pipe_err[WRITEEND], STDERR_FILENO) ;
 
             execlp(prog_name, prog_name, NULL);
+            
+            exit(1);
             break;
         default :
             close(pipe_in[WRITEEND]) ;
@@ -105,8 +108,7 @@ int pr_run_process(pProgram_Runner runner,  char * in_buff)
             wait(&status);
             runner->status = status;
 
-            // Assumes that the output is less than 1024...
-            
+            // Assumes that the output is less than 1024... => save as a file
             runner->outputs = (char*) malloc( 1024 * sizeof(char));
 
             // TODO realloc
@@ -125,7 +127,7 @@ int pr_run_process(pProgram_Runner runner,  char * in_buff)
             close(pipe_err[READEND]) ;
 
             return status;
-    }
+   }
 }
 
 p_result program_runner_run(pProgram_Runner runner, char * inp)
