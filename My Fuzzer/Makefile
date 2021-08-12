@@ -1,4 +1,4 @@
 all : fuzzer
 
-fuzzer : fuzzer_loop.c
-	gcc -o bin/fuzzer src/fuzzer_loop.c
+fuzzer : src/fuzzer.c
+	gcc -o bin/fuzzer src/fuzzer.c include/config.h include/setting.h
