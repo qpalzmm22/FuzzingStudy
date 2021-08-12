@@ -9,7 +9,6 @@ I created abstract fuzzer and fuzzer driver that runs it. Fuzzer driver, which i
   - Config
     - Fuzzer config
       - Time interrupt timing
-      - 
     - String config
       - length
       - range
@@ -17,7 +16,7 @@ I created abstract fuzzer and fuzzer driver that runs it. Fuzzer driver, which i
     - Oracle config
       - What is "unexpected outcome"
       - How to save the results => files, but only "unexpected outcomes" => can set it in config
-      - 
+
     - Program config
       - How to input fuzzed strings in program(1. STDIN, 2. Argument, 3. fuzzed string in file).
       - With or without env. vars? with different envs? fuzz envs?

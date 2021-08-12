@@ -2,7 +2,8 @@
 
 int
 main(){
-
+    init_fuzzer();
+    fuzzloop();
 
     return 0;
 }

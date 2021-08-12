@@ -1,13 +1,37 @@
+#include "./types.h"
+
 #include <linux/limits.h>
 #include <unistd.h>
-#include "setting.h"
 
-enum mode{
-    /* 0 */ M_STDIN,
-    /* 1 */ M_ARG,
-    /* 2 */ M_FILE
-};
+/* -------------------------------------------------------------------------------------
+        |       User Config       | 
+        V                         V
+   ---------------------------------------------------------------------------------*/
 
+
+// #define DEFAULT_FUZZER
+
+#define MIN_LEN 20
+#define MAX_LEN 40
+// #define CH_START 
+// #define CH_RANGE 
+#define PROG_PATH "/bin/cat"
+
+#define DEFAULT_PATH
+
+// #define IN_PATH
+// #define OUT_PATH 
+
+// #define EXEC_MODE 
+// #define TRIALS 
+// #define TIMEOUT 
+// #define HANG_TIMEOUT
+// #define ORACLE 
+
+/* -------------------------------------------------------------------------------------
+            |    DEFAULT VALUES FROM HERE    | 
+            V                                V
+   ---------------------------------------------------------------------------------*/
 
 #ifndef MIN_LEN 
 #define MIN_LEN 20
@@ -26,8 +50,10 @@ enum mode{
 #endif /* ! CH_RANGE */
 
 #ifndef PROG_PATH 
-#define PROG_PATH "./"
+#define PROG_PATH "./a.out"
 #endif /* ! PROG_PATH */
+
+#ifndef DEFAULT_PATH
 
 #ifndef IN_PATH 
 #define IN_PATH "./"
@@ -36,6 +62,8 @@ enum mode{
 #ifndef OUT_PATH 
 #define OUT_PATH "./"
 #endif /* ! OUT_PATH */
+
+#endif /* ! DEFAULT_PATH */
 
 #ifndef EXEC_MODE 
 #define EXEC_MODE M_STDIN
@@ -58,27 +86,3 @@ enum mode{
 #define ORACLE 0x0
 #endif /* ! ORACLE */
 
-typedef struct config{
-    // fuzzer input config
-    int min_len ;
-    int max_len ;
-    int ch_start ; 
-    int ch_range ;
- 
-    // binary path
-    char *prog_path ;
-
-    // output path
-    char *in_path ;
-    char *out_path ;
-
-    // command line config
-	enum mode exec_mode ;  // 0 = STDIN, 1 = ARG, 2 = M_FILe
-
-    // Exec
-    int trial ; // default 10 ?
-    int timeout ;
-
-    int hang_timeout ; // timeout by seconds
-    void* (*oracle)() ;
-} config_t, *pConfig_t ;
