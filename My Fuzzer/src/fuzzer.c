@@ -7,20 +7,17 @@
 
 #define DEBUG
 
-
 static pConfig_t g_config;
+static result_t g_result;
 
 // TODO : template
 char * 
 create_tmp_dirs()
 {
 	char template[64] = "tmp_XXXXXX";
-    // TODO : 
+    // TODO :   
     // Change to path
     
-    // char dir_path[PATH_MAX];
-    // sprintf(dir_path, "%s/%s", g_config->out_path, template);
-	// char *p_dir_name = mkdtemp(template);
 	char * dir_name = malloc( 32 * sizeof(char));
 	
 	strcpy(dir_name, mkdtemp(template));	
@@ -77,9 +74,9 @@ my_fread(void * ptr, int n, FILE * stream)
 }
 
 void
-make_input_files(char* str, int len, char *file_path)
+make_input_files(char* str, int len, char *in_data_path)
 {
-    FILE *fp =  fopen(file_path, "wb");
+    FILE *fp =  fopen(in_data_path, "wb");
 
     if(fp == 0){
         perror("ERROR in opening input file");
@@ -92,10 +89,11 @@ make_input_files(char* str, int len, char *file_path)
 }
 
 int
-exec_process(char * str, int len, int itr)
+exec_process(char * str, int len, int itr, char *out_buff, char *err_buff)
 {
-    int s = 0;
+
     char *prog_name = g_config->prog_path;
+    char ** argv = g_config->prog_args;
     char *dir_path = g_config->data_path;
 
     int pipe_in[2];
@@ -113,17 +111,19 @@ exec_process(char * str, int len, int itr)
     }
 
     switch(fork()) {
-        case -1 :
+        case -1 : ;
             perror("Error in fork");
             exit(1);
             break;
-        case 0 :  // child receives by stdin 
+        case 0 : ; // child receives by stdin 
+
+            char in_file_path[PATH_MAX];
+
+            sprintf(in_file_path, "%s%s%d", dir_path, "/inputs/input", itr);
+            make_input_files(str, len, in_file_path);
+
             if(g_config->exec_mode == M_STDIN){
 
-                char in_file_path[PATH_MAX];
-                sprintf(in_file_path, "%s%s%d", dir_path, "/inputs/input", itr);
-                make_input_files(str, len, in_file_path);
-                
                 close(pipe_out[READEND]) ;
                 close(pipe_err[READEND]) ;
 
@@ -132,7 +132,7 @@ exec_process(char * str, int len, int itr)
                     sent = write(pipe_in[WRITEEND], str + sent, len - sent);
                     if(sent == -1){
                         perror("Error in write");
-                        exit(1);
+                        exit(1);    // CHECK
                     }
                     sent += sent;
                 }
@@ -146,13 +146,13 @@ exec_process(char * str, int len, int itr)
                 dup2(pipe_out[WRITEEND], STDOUT_FILENO) ;
                 dup2(pipe_err[WRITEEND], STDERR_FILENO) ;
 
-                execlp(prog_name, prog_name, NULL);
+                execv(prog_name, argv);
             }
-            
+
             perror("Error in execlp");
             exit(1);
             break;
-        default :
+        default : ;
             close(pipe_in[WRITEEND]) ;
             close(pipe_in[READEND]) ;
             
@@ -174,11 +174,18 @@ exec_process(char * str, int len, int itr)
 				exit(1);
 			}
 
-			char out_buff[1024];
+			char out_tmp_buff[1024];
             // TODO : consider... is this right?
-			while((s = read(pipe_out[READEND], out_buff, 1024)) > 0){
-                
-				if(fwrite(out_buff, 1, s, fp) < s){
+            int s;
+            int read_bytes = 0;
+
+			while((s = read(pipe_out[READEND], out_tmp_buff, 1024)) > 0){
+                if( read_bytes < 1024 ){
+                   memcpy(out_buff + read_bytes, out_tmp_buff + read_bytes, s); 
+                }
+                read_bytes += s;
+
+				if(fwrite(out_tmp_buff, 1, s, fp) < s){
 					fprintf(stderr, "Error in making out files\n");
 				}
 			}
@@ -191,21 +198,40 @@ exec_process(char * str, int len, int itr)
 				perror("ERROR in opening error file");
 				exit(1);
 			}
-			char err_buff[1024];
 
-			while((s = read(pipe_err[READEND], err_buff, 1024)) > 0){
-				if(fwrite(err_buff, 1, s, fp) < s){
+			char err_tmp_buff[1024];
+            
+            read_bytes = 0;
+
+			while((s = read(pipe_err[READEND], err_tmp_buff, 1024)) > 0){
+
+                if( read_bytes < 1024 ){
+                   memcpy(out_buff + read_bytes, out_tmp_buff + read_bytes, s); 
+                }
+                read_bytes += s;
+
+				if(fwrite(err_tmp_buff, 1, s, fp) < s){
 					fprintf(stderr, "Error in making err files\n");
 				}
 			}
 			
 			fclose(fp);
-			
 			close(pipe_err[READEND]);
-
     }
 
 }
+
+// Always return true...
+// TODO : How to make a generic oracle?? 
+int
+default_oracle(int exit_code, char* input, int input_len, char* stdout_buff, char* stderr_buff)
+{
+    if(exit_code != 0)
+        return 0;
+    else
+        return 1;
+}
+
 // Sets and check the inputs
 void
 init_fuzzer()
@@ -217,11 +243,11 @@ init_fuzzer()
     //check_inputs();
     // in_config check
     if( MIN_LEN < 0 || MAX_LEN < 0 ){
-        fprintf(stderr, "FUZZER Length must be 0 or greater than 0\n");
+        fprintf(stderr, "FUZZER Length must be 0 or greater\n");
         exit(1);    
     }
     if( CH_START < 0 || CH_RANGE < 0 ){
-        fprintf(stderr, "CH_START, CH_RANGE must be 0 or greater than 0\n");
+        fprintf(stderr, "CH_START, CH_RANGE must be 0 or greater\n");
         exit(1);    
     }
     // rand string generator
@@ -231,20 +257,17 @@ init_fuzzer()
     g_config->in_configs.ch_range = CH_RANGE ;
  
 
-    char real_path[PATH_MAX];
-    // executable path
-    if( realpath( PROG_PATH, real_path ) == NULL) {
+    char real_path[PATH_MAX]; // abs_path
+    // executable pat
+    if( realpath(PROG_PATH, real_path ) == NULL) {
         perror("Error on real path") ; 
         exit(1);
-    } else if( access( real_path, F_OK ) == 0 ) {
+    } else if( access( real_path, X_OK ) == 0 ) {
         strcpy(g_config->prog_path, real_path) ;
     } else {
         perror("Can't access the file") ;
         exit(1);
     }
-
-    // Default 
-    // 
 
     // Needs to be freed
     char * tmp = create_tmp_dirs();
@@ -257,33 +280,58 @@ init_fuzzer()
         fprintf(stderr, "Exec mode must be between 0 ~ 2");
         exit(1);
     }
-	g_config->exec_mode = EXEC_MODE;  // 0 = M_STDIN, 1 = ARG, 2 = M_FILe
+	g_config->exec_mode = (enum mode)EXEC_MODE;  // 0 = M_STDIN, 1 = ARG, 2 = M_FILe
 
     // Exec
     if(TRIALS < 0){
-        fprintf(stderr, "TRIALS must be 0 or greater than 0");
+        fprintf(stderr, "TRIALS must be 0 or greater");
         exit(1);
     }
-    g_config->trial = TRIALS ; 
+    g_config->trial = (int)TRIALS ; 
 
 
     if(TIMEOUT < 0){
         fprintf(stderr, "TIMEOUT must be 0 or greater than 0");
         exit(1);
     }
-    g_config->timeout = TIMEOUT ; // timeout by seconds
+    g_config->timeout = (int)TIMEOUT ; // timeout by seconds
 
+#ifdef HANG_TIMEOUT
     // consider hang if this amount time passes
     if(HANG_TIMEOUT < 0){
         fprintf(stderr, "HANG_TIMEOUT must be 0 or greater than 0");
         exit(1);
     }
-    g_config->hang_timeout = HANG_TIMEOUT;
- 
+    g_config->hang_timeout = (int)HANG_TIMEOUT;
+ #endif /* HANG_TIMEOUT */ 
+
     // Q. How to check the integrity of function address?
-    // Q. Receive it through parameter? 
+    // Q. Receive it through parameter?
     g_config->oracle = ORACLE;
 
+    // --------------------- Initialize g_results----------------
+
+    // It's useless since it's declared global?
+    g_result.bugs = 0;
+    g_result.tot_test_cases = 0;
+
+}
+
+void print_result()
+{
+    printf("================== FUZZING RESULT ==================\n");
+    printf("=   Program Path : %20s            =\n", g_config->prog_path);
+    printf("=    Output Path : %20s            =\n", g_config->data_path);
+    printf("=     Test Cases : %20d            =\n", g_result.tot_test_cases);
+    printf("=     Bugs Found : %20d            =\n", g_result.bugs);
+    printf("====================================================\n");
+}
+
+void
+alarm_handler(int sig)
+{
+    printf("Times up...\n");
+    exit(0);
 }
 
 // Runs fuzz loop
@@ -303,33 +351,44 @@ fuzz_loop()
     // - Timer start with interrupt 
     // - Make subprocesses and exec.
     // - Gets the results(STDOUT, STDIN)
-    for(int i = 0; i < g_config->trial; i++){
 
-        char *rand_str = (char *)malloc(sizeof(char) * (g_config->in_configs.max_len + 1));
+    signal(SIGALRM, alarm_handler);
+    alarm(g_config->timeout);
+
+    for(int i = 0; i < g_config->trial; i++){
+        
+        // TODO size can change
+        char out_buff[1024];
+        char err_buff[1024];
+        char *rand_str = (char *) malloc(sizeof(char) * (g_config->in_configs.max_len + 1));
 
         // crate_rand_str could change when using mutabion-based fuzzing
         int len = create_rand_str(g_config->in_configs, rand_str);
 #ifdef DEBUG
         printf("rand array : %s\n", rand_str);
 #endif
-        exec_process(rand_str, len, i);
+        int exit_code = exec_process(rand_str, len, i, out_buff, err_buff);
+#ifdef DEBUG
+        printf("ret code : %d\n", exit_code);
+        printf("out_buff : %s\n", out_buff);
+        printf("err_buff : %s\n", err_buff);
+#endif
+        // - check STDOUT, STDERR, STDIN and return code to decide "what is bug". 
+        // - Make file in bug dir.
+        //printf("Test %d-th input : %s \n", i, rand_str);
+
+        if( !g_config->oracle(exit_code, rand_str, len, out_buff, err_buff)) {
+            g_result.bugs++;  
+            printf("Bug found!\nCheck %d-th file\n", i);
+        }
+        g_result.tot_test_cases++;
+
         free(rand_str);
     }
 
-    // Oracle
-    // - check STDOUT, STDERR, STDIN and return code to decide "what is bug". 
-    // - Make file in bug dir.
-    // g_config->oracle(); 
+    // Print result pretty
+    print_result();
+
+    free(g_config);
 }
-
-#ifdef DEBUG
-
-int main()
-{
-    init_fuzzer();
-    fuzz_loop();
-}
-
-#endif
-
 

@@ -23,6 +23,7 @@ typedef struct _config{
  
     // binary path
     char prog_path[PATH_MAX] ;
+    char** prog_args ;
 
     // input, output, error data path
     char data_path[PATH_MAX] ;
@@ -35,7 +36,13 @@ typedef struct _config{
     int timeout ;
 
     int hang_timeout ; // timeout by seconds
-    void* (*oracle)() ;
+    int (*oracle)(int, char*, int, char*, char*) ;
 } config_t, *pConfig_t ;
+
+typedef struct _result{
+    int bugs ;
+    int tot_test_cases ;
+}result_t ,*pResult_t;
+
 
 #endif /* !_HAVE_TYPES_H_ */

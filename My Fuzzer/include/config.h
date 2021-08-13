@@ -15,25 +15,27 @@
 
 //#define DEFAULT_FUZZER
 
-// #define MIN_LEN 20
-// #define MAX_LEN 40
-// #define CH_START 
-// #define CH_RANGE 
+#define MIN_LEN 20
+#define MAX_LEN 30
+#define CH_START 32
+#define CH_RANGE 100
 #define PROG_PATH "/bin/cat"
-
+#define PROG_ARGS "-E -n"
+// If DEFAULT_PATH is not defined, DATA_PATH should be defined
 // #define DEFAULT_PATH
+#define DATA_PATH "./data"
 
-// #define DATA_PATH
+// #define EXEC_MODE M_STDIN
 
-// #define EXEC_MODE 
-// #define TRIALS 
-// #define TIMEOUT 
-// #define HANG_TIMEOUT
-// #define ORACLE 
+#define TRIALS 100
+// #define TIMEOUT  
+// #define HANG_TIMEOUT 100
+// #define CHECK_N_BYTES 100
+// #define ORACLE default_oracle
 
 /* -------------------------------------------------------------------------------------
-            |    DEFAULT VALUES FROM HERE    | 
-            V                                V
+       |    DEFAULT VALUES     | 
+       V                       V
    ---------------------------------------------------------------------------------*/
 
 #ifndef MIN_LEN 
@@ -56,7 +58,7 @@
 #define PROG_PATH "./a.out"
 #endif /* ! PROG_PATH */
 
-#ifndef DEFAULT_PATH
+#ifdef DEFAULT_PATH
 
 #ifndef DATA_PATH 
 #define DATA_PATH "./"
@@ -79,10 +81,14 @@
 
 #ifndef HANG_TIMEOUT 
 #define HANG_TIMEOUT 100
-#endif /* ! TIMEOUT */
+#endif /* ! HANG_TIMEOUT */
+
+#ifndef CHECK_N_BYTES
+#define CHECK_N_BYTES 100
+#endif /* ! CHECK_N_BYTES */
 
 #ifndef ORACLE 
-#define ORACLE 0x0
+#define ORACLE default_oracle
 #endif /* ! ORACLE */
 
 #endif /* _HAVE_TYPES_H_ */

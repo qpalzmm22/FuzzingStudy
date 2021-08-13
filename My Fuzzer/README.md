@@ -10,7 +10,8 @@ See `config.h`. Here, you can change the settings of fuzzer. Before start, YOU M
  
 
 - Things To consider
-  - How to receive configs. JSON file?
+  - How to receive configs -> with `config.h` file.
+
   - Config
     - Fuzzer config
       - Time interrupt timing
@@ -19,13 +20,30 @@ See `config.h`. Here, you can change the settings of fuzzer. Before start, YOU M
       - range
       - Some useful config?
     - Oracle config
-      - What is "unexpected outcome"
+      - What is `"unexpected outcome"`
+        - ret = 0 but wrong. `false positives`
+          - In case of `cat`, what goes in comes out. 
+        - ret != 0 but right? `false negative`
+          - In case of `cat`, see error code. 
+        - `Run time errors` are bugs.
+          - WIFEXITED
+        - how to make Oracle generic?
+        - Generic orcale returns `0` when 
+  
       - How to save the results => files, but only "unexpected outcomes" => can set it in config
 
     - Program config
       - How to input fuzzed strings in program(1. STDIN, 2. Argument, 3. fuzzed string in file).
       - With or without env. vars? with different envs? fuzz envs?
+  
+- TODO lists
+  - M_ARG, M_FILE MODE
+  - Oracle
+  - review code.
+  - Hang Time interrupt.
 
+Assumptions
+- In, out files are in same path.
 
 
 Q.
