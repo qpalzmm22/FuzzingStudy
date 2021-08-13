@@ -1,6 +1,6 @@
 #include "../include/fuzzer.h"
 #include "../include/fuzz_input_maker.h"
-#include "../include/config.h"
+
 
 #define READEND 0
 #define WRITEEND 1
@@ -10,14 +10,17 @@
 
 static pConfig_t g_config;
 
-char 
-*create_tmp_dirs()
+// TODO : template
+char * 
+create_tmp_dirs()
 {
 	char template[64] = "tmp_XXXXXX";
     // TODO : 
-    //char dir_path[PATH_MAX];
-    //sprintf(dir_path, "%s/%s", g_config->out_path, template);
-	//char *p_dir_name = mkdtemp(template);
+    // Change to path
+    
+    // char dir_path[PATH_MAX];
+    // sprintf(dir_path, "%s/%s", g_config->out_path, template);
+	// char *p_dir_name = mkdtemp(template);
 	char * dir_name = malloc( 32 * sizeof(char));
 	
 	strcpy(dir_name, mkdtemp(template));	
@@ -31,6 +34,7 @@ char
 	sprintf(out_dir_path, "%s%s", dir_name, "/outputs");
 	sprintf(err_dir_path, "%s%s", dir_name, "/errors");
 
+    
 	if(mkdir(in_dir_path, S_IRWXU) != 0 ){
 		perror("ERROR in creating in directory");
         exit(1);
@@ -44,29 +48,29 @@ char
         exit(1);
 	} 
 
-	return dir_name;
+    return dir_name;
 }
 
-ssize_t
-my_fwrite(void * ptr, ssize_t n, FILE * stream)
+int
+my_fwrite(void * ptr, int n, FILE * stream)
 {
-	ssize_t sent = 0;
+	int sent = 0;
 
 	while(sent < n){
-		sent += fwrite(ptr + sent, n - sent, 1, stream);
+		sent += fwrite(ptr + sent, 1, n - sent, stream);
 	}
 
 	return sent;
 }
 
 // fread() safe version
-ssize_t
-my_fread(void * ptr, ssize_t n, FILE * stream)
+int
+my_fread(void * ptr, int n, FILE * stream)
 {
-	ssize_t received = 0;
+	int received = 0;
 
 	while(received < n){
-		received += fread(ptr + received , n - received, 1, stream);
+		received += fread(ptr + received , 1, n - received, stream);
 	}
 
 	return received;
@@ -75,23 +79,24 @@ my_fread(void * ptr, ssize_t n, FILE * stream)
 void
 make_input_files(char* str, int len, char *file_path)
 {
-
     FILE *fp =  fopen(file_path, "wb");
 
     if(fp == 0){
-        perror("ERROR in opening output file");
+        perror("ERROR in opening input file");
         exit(1);
     }
     if(my_fwrite(str, len, fp) != len){
         fprintf(stderr, "Error in my_writing input file\n");
     }
+    fclose(fp);
 }
 
 int
 exec_process(char * str, int len, int itr)
 {
+    int s = 0;
     char *prog_name = g_config->prog_path;
-    char *dir_path = g_config->out_path;
+    char *dir_path = g_config->data_path;
 
     int pipe_in[2];
     int pipe_out[2];
@@ -122,8 +127,19 @@ exec_process(char * str, int len, int itr)
                 close(pipe_out[READEND]) ;
                 close(pipe_err[READEND]) ;
 
-                
-                dup2(pipe_in[READEND], STDIN_FILENO) ;      
+                int sent = 0;
+                while(sent < len){
+                    sent = write(pipe_in[WRITEEND], str + sent, len - sent);
+                    if(sent == -1){
+                        perror("Error in write");
+                        exit(1);
+                    }
+                    sent += sent;
+                }
+                // write str by len amount
+
+                dup2(pipe_in[READEND], STDIN_FILENO) ;
+
                 close(pipe_in[READEND]) ;
                 close(pipe_in[WRITEEND]) ;
 
@@ -159,9 +175,9 @@ exec_process(char * str, int len, int itr)
 			}
 
 			char out_buff[1024];
-			ssize_t s;
-
+            // TODO : consider... is this right?
 			while((s = read(pipe_out[READEND], out_buff, 1024)) > 0){
+                
 				if(fwrite(out_buff, 1, s, fp) < s){
 					fprintf(stderr, "Error in making out files\n");
 				}
@@ -208,7 +224,7 @@ init_fuzzer()
         fprintf(stderr, "CH_START, CH_RANGE must be 0 or greater than 0\n");
         exit(1);    
     }
-    // fuzzer
+    // rand string generator
     g_config->in_configs.min_len = MIN_LEN ;
     g_config->in_configs.max_len = MAX_LEN ;
     g_config->in_configs.ch_start = CH_START ;
@@ -221,19 +237,20 @@ init_fuzzer()
         perror("Error on real path") ; 
         exit(1);
     } else if( access( real_path, F_OK ) == 0 ) {
-        g_config->prog_path = real_path ;
+        strcpy(g_config->prog_path, real_path) ;
     } else {
         perror("Can't access the file") ;
         exit(1);
     }
-    // output path
-    
-    // Think...
-    // g_config->in_path = IN_PATH ;
-    // g_config->out_path = OUT_PATH ;
 
-    // Check if every input 
-    create_tmp_dirs();
+    // Default 
+    // 
+
+    // Needs to be freed
+    char * tmp = create_tmp_dirs();
+    strcpy(g_config->data_path, tmp);
+    free(tmp);
+    
 
     // command line g_config
     if(EXEC_MODE != M_STDIN && EXEC_MODE != M_ARG && EXEC_MODE != M_FILE){
@@ -262,10 +279,10 @@ init_fuzzer()
         exit(1);
     }
     g_config->hang_timeout = HANG_TIMEOUT;
-
-    // How to check if the function address' integrity
+ 
+    // Q. How to check the integrity of function address?
+    // Q. Receive it through parameter? 
     g_config->oracle = ORACLE;
-
 
 }
 
@@ -309,7 +326,7 @@ fuzz_loop()
 
 int main()
 {
-
+    init_fuzzer();
     fuzz_loop();
 }
 

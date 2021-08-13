@@ -1,5 +1,8 @@
 #include "../include/fuzz_input_maker.h"
 
+
+
+// returns 'len + 1' length of string with '\0' at the end 
 int 
 create_rand_str(in_config_t in_config, char * dest)
 {
@@ -8,7 +11,7 @@ create_rand_str(in_config_t in_config, char * dest)
     int char_start = in_config.ch_start ;
     int char_range = in_config.ch_range ;
     
-	unsigned int len ;	
+	int len ;	
 
 	len = rand() % (max_len - min_len + 1) + min_len ; 
 

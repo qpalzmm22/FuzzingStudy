@@ -1,3 +1,8 @@
+#ifndef _HAVE_TYPES_H_
+#define _HAVE_TYPES_H_
+
+#include <linux/limits.h>
+
 enum mode{
     /* 0 */ M_STDIN,
     /* 1 */ M_ARG,
@@ -17,11 +22,10 @@ typedef struct _config{
     in_config_t in_configs;
  
     // binary path
-    char *prog_path ;
+    char prog_path[PATH_MAX] ;
 
-    // output path
-    char *in_path ;
-    char *out_path ;
+    // input, output, error data path
+    char data_path[PATH_MAX] ;
 
     // command line config
 	enum mode exec_mode ;  // 0 = STDIN, 1 = ARG, 2 = M_FILe
@@ -33,3 +37,5 @@ typedef struct _config{
     int hang_timeout ; // timeout by seconds
     void* (*oracle)() ;
 } config_t, *pConfig_t ;
+
+#endif /* !_HAVE_TYPES_H_ */

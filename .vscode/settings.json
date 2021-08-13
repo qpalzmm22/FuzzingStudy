@@ -9,6 +9,10 @@
         "wait.h": "c",
         "limits.h": "c",
         "fcntl.h": "c",
-        "fuzzer_classes.h": "c"
+        "fuzzer_classes.h": "c",
+        "config.h": "c",
+        "string.h": "c",
+        "stdlib.h": "c",
+        "fuzz_input_maker.h": "c"
     }
 }

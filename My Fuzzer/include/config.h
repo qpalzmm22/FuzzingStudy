@@ -1,4 +1,8 @@
-#include "./types.h"
+
+#ifndef _HAVE_CONFIG_H_
+#define _HAVE_CONFIG_H_
+
+#include "types.h"
 
 #include <linux/limits.h>
 #include <unistd.h>
@@ -9,18 +13,17 @@
    ---------------------------------------------------------------------------------*/
 
 
-// #define DEFAULT_FUZZER
+//#define DEFAULT_FUZZER
 
-#define MIN_LEN 20
-#define MAX_LEN 40
+// #define MIN_LEN 20
+// #define MAX_LEN 40
 // #define CH_START 
 // #define CH_RANGE 
 #define PROG_PATH "/bin/cat"
 
-#define DEFAULT_PATH
+// #define DEFAULT_PATH
 
-// #define IN_PATH
-// #define OUT_PATH 
+// #define DATA_PATH
 
 // #define EXEC_MODE 
 // #define TRIALS 
@@ -55,13 +58,9 @@
 
 #ifndef DEFAULT_PATH
 
-#ifndef IN_PATH 
-#define IN_PATH "./"
-#endif /* ! IN_PATH */
-
-#ifndef OUT_PATH 
-#define OUT_PATH "./"
-#endif /* ! OUT_PATH */
+#ifndef DATA_PATH 
+#define DATA_PATH "./"
+#endif /* ! DATA_PATH */
 
 #endif /* ! DEFAULT_PATH */
 
@@ -86,3 +85,4 @@
 #define ORACLE 0x0
 #endif /* ! ORACLE */
 
+#endif /* _HAVE_TYPES_H_ */
