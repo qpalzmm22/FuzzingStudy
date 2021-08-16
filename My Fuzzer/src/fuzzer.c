@@ -218,6 +218,7 @@ exec_process(char * str, int len, int itr, char *out_buff, char *err_buff)
 			
 			fclose(fp);
 			close(pipe_err[READEND]);
+            return ret_code;
     }
 
 }
