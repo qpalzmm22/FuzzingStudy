@@ -436,7 +436,7 @@ fuzz_loop()
     // Print result pretty
     print_result();
 
-    // free Everything
+    // TODO : free Everything
 
 
     free(g_config);
