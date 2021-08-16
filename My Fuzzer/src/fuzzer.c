@@ -11,69 +11,69 @@ static pConfig_t g_config;
 static result_t g_result;
 
 // TODO : template
-char * 
+    char * 
 create_tmp_dirs()
 {
-	char template[64] = "tmp_XXXXXX";
+    char template[64] = "tmp_XXXXXX";
     // TODO :   
     // Change to path
-    
-	char * dir_name = malloc( 32 * sizeof(char));
-	
-	strcpy(dir_name, mkdtemp(template));	
 
-	char in_dir_path[32];
-	char out_dir_path[32];
-	char err_dir_path[32];
+    char * dir_name = malloc( 32 * sizeof(char));
 
-	// make dirs
-	sprintf(in_dir_path, "%s%s", dir_name, "/inputs");
-	sprintf(out_dir_path, "%s%s", dir_name, "/outputs");
-	sprintf(err_dir_path, "%s%s", dir_name, "/errors");
+    strcpy(dir_name, mkdtemp(template));	
 
-    
-	if(mkdir(in_dir_path, S_IRWXU) != 0 ){
-		perror("ERROR in creating in directory");
+    char in_dir_path[32];
+    char out_dir_path[32];
+    char err_dir_path[32];
+
+    // make dirs
+    sprintf(in_dir_path, "%s%s", dir_name, "/inputs");
+    sprintf(out_dir_path, "%s%s", dir_name, "/outputs");
+    sprintf(err_dir_path, "%s%s", dir_name, "/errors");
+
+
+    if(mkdir(in_dir_path, S_IRWXU) != 0 ){
+        perror("ERROR in creating in directory");
         exit(1);
-	} 
-	if(mkdir(out_dir_path, S_IRWXU) != 0 ){
-		perror("ERROR in creating out directory");
+    } 
+    if(mkdir(out_dir_path, S_IRWXU) != 0 ){
+        perror("ERROR in creating out directory");
         exit(1);
-	} 
-	if(mkdir(err_dir_path, S_IRWXU) != 0 ){
-		perror("ERROR in creating err directory");
+    } 
+    if(mkdir(err_dir_path, S_IRWXU) != 0 ){
+        perror("ERROR in creating err directory");
         exit(1);
-	} 
+    } 
 
     return dir_name;
 }
 
-int
+    int
 my_fwrite(void * ptr, int n, FILE * stream)
 {
-	int sent = 0;
+    int sent = 0;
 
-	while(sent < n){
-		sent += fwrite(ptr + sent, 1, n - sent, stream);
-	}
+    while(sent < n){
+        sent += fwrite(ptr + sent, 1, n - sent, stream);
+    }
 
-	return sent;
+    return sent;
 }
 
 // fread() safe version
-int
+    int
 my_fread(void * ptr, int n, FILE * stream)
 {
-	int received = 0;
+    int received = 0;
 
-	while(received < n){
-		received += fread(ptr + received , 1, n - received, stream);
-	}
+    while(received < n){
+        received += fread(ptr + received , 1, n - received, stream);
+    }
 
-	return received;
+    return received;
 }
 
-void
+    void
 make_input_files(char* str, int len, char *in_data_path)
 {
     FILE *fp =  fopen(in_data_path, "wb");
@@ -88,7 +88,7 @@ make_input_files(char* str, int len, char *in_data_path)
     fclose(fp);
 }
 
-int
+    int
 exec_process(char * str, int len, int itr, char *out_buff, char *err_buff)
 {
 
@@ -112,111 +112,111 @@ exec_process(char * str, int len, int itr, char *out_buff, char *err_buff)
 
     switch(fork()) {
         case -1 : ;
-            perror("Error in fork");
-            exit(1);
-            break;
+                  perror("Error in fork");
+                  exit(1);
+                  break;
         case 0 : ; // child receives by stdin 
 
-            char in_file_path[PATH_MAX];
+                 char in_file_path[PATH_MAX];
 
-            sprintf(in_file_path, "%s%s%d", dir_path, "/inputs/input", itr);
-            make_input_files(str, len, in_file_path);
+                 sprintf(in_file_path, "%s%s%d", dir_path, "/inputs/input", itr);
+                 make_input_files(str, len, in_file_path);
 
-            if(g_config->exec_mode == M_STDIN){
+                 if(g_config->exec_mode == M_STDIN){
 
-                close(pipe_out[READEND]) ;
-                close(pipe_err[READEND]) ;
+                     close(pipe_out[READEND]) ;
+                     close(pipe_err[READEND]) ;
 
-                int sent = 0;
-                while(sent < len){
-                    sent = write(pipe_in[WRITEEND], str + sent, len - sent);
-                    if(sent == -1){
-                        perror("Error in write");
-                        exit(1);    // CHECK
-                    }
-                    sent += sent;
-                }
-                // write str by len amount
+                     int sent = 0;
+                     while(sent < len){
+                         sent = write(pipe_in[WRITEEND], str + sent, len - sent);
+                         if(sent == -1){
+                             perror("Error in write");
+                             exit(1);    // CHECK
+                         }
+                         sent += sent;
+                     }
+                     // write str by len amount
 
-                dup2(pipe_in[READEND], STDIN_FILENO) ;
+                     dup2(pipe_in[READEND], STDIN_FILENO) ;
 
-                close(pipe_in[READEND]) ;
-                close(pipe_in[WRITEEND]) ;
+                     close(pipe_in[READEND]) ;
+                     close(pipe_in[WRITEEND]) ;
 
-                dup2(pipe_out[WRITEEND], STDOUT_FILENO) ;
-                dup2(pipe_err[WRITEEND], STDERR_FILENO) ;
+                     dup2(pipe_out[WRITEEND], STDOUT_FILENO) ;
+                     dup2(pipe_err[WRITEEND], STDERR_FILENO) ;
 
-                execv(prog_name, argv);
-            }
+                     execv(prog_name, argv);
+                 }
 
-            perror("Error in execlp");
-            exit(1);
-            break;
+                 perror("Error in execlp");
+                 exit(1);
+                 break;
         default : ;
-            close(pipe_in[WRITEEND]) ;
-            close(pipe_in[READEND]) ;
-            
-            close(pipe_out[WRITEEND]) ;
-            close(pipe_err[WRITEEND]) ;
+                  close(pipe_in[WRITEEND]) ;
+                  close(pipe_in[READEND]) ;
 
-            int ret_code;
-            wait(&ret_code);
+                  close(pipe_out[WRITEEND]) ;
+                  close(pipe_err[WRITEEND]) ;
 
-            // Write to a file
-            char out_file_name[32]; // len = 19
-			char err_file_name[32];
-			sprintf(out_file_name, "%s%s%d", dir_path, "/outputs/output", itr);
-			sprintf(err_file_name, "%s%s%d", dir_path, "/errors/error", itr);
+                  int ret_code;
+                  wait(&ret_code);
 
-			FILE *fp =  fopen(out_file_name, "wb");
-			if(fp == 0){
-				perror("ERROR in opening output file");
-				exit(1);
-			}
+                  // Write to a file
+                  char out_file_name[32]; // len = 19
+                  char err_file_name[32];
+                  sprintf(out_file_name, "%s%s%d", dir_path, "/outputs/output", itr);
+                  sprintf(err_file_name, "%s%s%d", dir_path, "/errors/error", itr);
 
-			char out_tmp_buff[1024];
-            // TODO : consider... is this right?
-            int s;
-            int read_bytes = 0;
+                  FILE *fp =  fopen(out_file_name, "wb");
+                  if(fp == 0){
+                      perror("ERROR in opening output file");
+                      exit(1);
+                  }
 
-			while((s = read(pipe_out[READEND], out_tmp_buff, 1024)) > 0){
-                if( read_bytes < 1024 ){
-                   memcpy(out_buff + read_bytes, out_tmp_buff + read_bytes, s); 
-                }
-                read_bytes += s;
+                  char out_tmp_buff[1024];
+                  // TODO : consider... is this right?
+                  int s;
+                  int read_bytes = 0;
 
-				if(fwrite(out_tmp_buff, 1, s, fp) < s){
-					fprintf(stderr, "Error in making out files\n");
-				}
-			}
-			
-			close(pipe_out[READEND]);
-			fclose(fp);
+                  while((s = read(pipe_out[READEND], out_tmp_buff, 1024)) > 0){
+                      if( read_bytes < 1024 ){
+                          memcpy(out_buff + read_bytes, out_tmp_buff + read_bytes, s); 
+                      }
+                      read_bytes += s;
 
-			fp =  fopen(err_file_name, "wb");
-			if(fp == 0){
-				perror("ERROR in opening error file");
-				exit(1);
-			}
+                      if(fwrite(out_tmp_buff, 1, s, fp) < s){
+                          fprintf(stderr, "Error in making out files\n");
+                      }
+                  }
 
-			char err_tmp_buff[1024];
-            
-            read_bytes = 0;
+                  close(pipe_out[READEND]);
+                  fclose(fp);
 
-			while((s = read(pipe_err[READEND], err_tmp_buff, 1024)) > 0){
+                  fp =  fopen(err_file_name, "wb");
+                  if(fp == 0){
+                      perror("ERROR in opening error file");
+                      exit(1);
+                  }
 
-                if( read_bytes < 1024 ){
-                   memcpy(out_buff + read_bytes, out_tmp_buff + read_bytes, s); 
-                }
-                read_bytes += s;
+                  char err_tmp_buff[1024];
 
-				if(fwrite(err_tmp_buff, 1, s, fp) < s){
-					fprintf(stderr, "Error in making err files\n");
-				}
-			}
-			
-			fclose(fp);
-			close(pipe_err[READEND]);
+                  read_bytes = 0;
+
+                  while((s = read(pipe_err[READEND], err_tmp_buff, 1024)) > 0){
+
+                      if( read_bytes < 1024 ){
+                          memcpy(out_buff + read_bytes, out_tmp_buff + read_bytes, s); 
+                      }
+                      read_bytes += s;
+
+                      if(fwrite(err_tmp_buff, 1, s, fp) < s){
+                          fprintf(stderr, "Error in making err files\n");
+                      }
+                  }
+
+                  fclose(fp);
+                  close(pipe_err[READEND]);
     }
 
 }
@@ -224,7 +224,7 @@ exec_process(char * str, int len, int itr, char *out_buff, char *err_buff)
 
 // g_config->prog_args
 // strcpy? can't touch prog_args...
-void
+    void
 make_argv()
 {
     printf("here\n");
@@ -254,13 +254,13 @@ make_argv()
     }
     g_config->prog_args = argv;
     g_config->prog_argc = argc;
-    
+
 
 }   
 
 // Always return true...
 // TODO : How to make a generic oracle?? 
-int
+    int
 default_oracle(int exit_code, char* input, int input_len, char* stdout_buff, char* stderr_buff)
 {
     if(exit_code != 0)
@@ -270,7 +270,7 @@ default_oracle(int exit_code, char* input, int input_len, char* stdout_buff, cha
 }
 
 // Sets and check the inputs
-void
+    void
 init_fuzzer(int (*oracle)(int, char*, int, char*, char* ))
 {
     g_config = (pConfig_t)malloc(sizeof(config_t)) ;
@@ -293,7 +293,7 @@ init_fuzzer(int (*oracle)(int, char*, int, char*, char* ))
     g_config->in_configs.ch_start = CH_START ;
     g_config->in_configs.ch_range = CH_RANGE ;
 
-    
+
 
     char real_path[PATH_MAX]; // abs_path
     // executable pat
@@ -315,14 +315,14 @@ init_fuzzer(int (*oracle)(int, char*, int, char*, char* ))
     char * tmp = create_tmp_dirs();
     strcpy(g_config->data_path, tmp);
     free(tmp);
-    
+
 
     // command line g_config
     if(EXEC_MODE != M_STDIN && EXEC_MODE != M_ARG && EXEC_MODE != M_FILE){
         fprintf(stderr, "Exec mode must be between 0 ~ 2");
         exit(1);
     }
-	g_config->exec_mode = (enum mode)EXEC_MODE;  // 0 = M_STDIN, 1 = ARG, 2 = M_FILe
+    g_config->exec_mode = (enum mode)EXEC_MODE;  // 0 = M_STDIN, 1 = ARG, 2 = M_FILe
 
     // Exec
     if(TRIALS < 0){
@@ -345,7 +345,7 @@ init_fuzzer(int (*oracle)(int, char*, int, char*, char* ))
         exit(1);
     }
     g_config->hang_timeout = (int)HANG_TIMEOUT;
- #endif /* HANG_TIMEOUT */ 
+#endif /* HANG_TIMEOUT */ 
 
     // Q. How to check the integrity of function address?
     // Q. Receive it through parameter?
@@ -367,14 +367,14 @@ void print_result()
     for(int i = 1; i < g_config->prog_argc; i++){
         printf("=    Prog arg[%d] : %20s            =\n", i, g_config->prog_args[i]);
     }
-    
+
     printf("=    Output Path : %20s            =\n", g_config->data_path);
     printf("=     Test Cases : %20d            =\n", g_result.tot_test_cases);
     printf("=     Bugs Found : %20d            =\n", g_result.bugs);
     printf("====================================================\n");
 }
 
-void
+    void
 alarm_handler(int sig)
 {
     printf("Times up...\n");
@@ -382,7 +382,7 @@ alarm_handler(int sig)
 }
 
 // Runs fuzz loop
-void
+    void
 fuzz_loop()
 {
     if(g_config == 0x0){
@@ -403,7 +403,7 @@ fuzz_loop()
     alarm(g_config->timeout);
 
     for(int i = 0; i < g_config->trial; i++){
-        
+
         // TODO size can change
         char out_buff[1024];
         char err_buff[1024];

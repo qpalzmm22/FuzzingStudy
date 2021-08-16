@@ -31,7 +31,6 @@
 // #define TIMEOUT  
 // #define HANG_TIMEOUT 100
 // #define CHECK_N_BYTES 100
-// #define ORACLE cat_oracle
 
 /* -------------------------------------------------------------------------------------
        |    DEFAULT VALUES     | 
