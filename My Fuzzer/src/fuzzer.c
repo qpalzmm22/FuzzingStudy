@@ -221,6 +221,43 @@ exec_process(char * str, int len, int itr, char *out_buff, char *err_buff)
 
 }
 
+
+// g_config->prog_args
+// strcpy? can't touch prog_args...
+void
+make_argv()
+{
+    printf("here\n");
+
+    char * args = (char*)malloc((strlen(PROG_ARGS) + 1) * sizeof(char));
+
+    // TODO : Better function...
+    strcpy(args, PROG_ARGS);    
+
+    char ** argv = (char **) calloc(1, sizeof(char*));
+    assert(argv);
+    argv[0] = g_config->prog_path;
+
+    int argc = 1;
+    printf("arg : %s\n", args);
+
+    char * arg = strtok(args, " ");
+
+    while( arg != 0x0){
+        printf("arg : %s\n",arg);
+        argc++;
+        argv = (char**)realloc(argv, argc * sizeof(char*));
+        assert(argv);
+        argv[argc - 1] = arg;
+
+        arg = strtok(NULL, " ");
+    }
+    g_config->prog_args = argv;
+    g_config->prog_argc = argc;
+    
+
+}   
+
 // Always return true...
 // TODO : How to make a generic oracle?? 
 int
@@ -255,7 +292,8 @@ init_fuzzer()
     g_config->in_configs.max_len = MAX_LEN ;
     g_config->in_configs.ch_start = CH_START ;
     g_config->in_configs.ch_range = CH_RANGE ;
- 
+
+    
 
     char real_path[PATH_MAX]; // abs_path
     // executable pat
@@ -268,6 +306,10 @@ init_fuzzer()
         perror("Can't access the file") ;
         exit(1);
     }
+
+    // Gets argvs
+    // g_config->args needs to be freed;
+    make_argv();
 
     // Needs to be freed
     char * tmp = create_tmp_dirs();
@@ -321,6 +363,11 @@ void print_result()
 {
     printf("================== FUZZING RESULT ==================\n");
     printf("=   Program Path : %20s            =\n", g_config->prog_path);
+
+    for(int i = 1; i < g_config->prog_argc; i++){
+        printf("=    Prog arg[%d] : %20s            =\n", i, g_config->prog_args[i]);
+    }
+    
     printf("=    Output Path : %20s            =\n", g_config->data_path);
     printf("=     Test Cases : %20d            =\n", g_result.tot_test_cases);
     printf("=     Bugs Found : %20d            =\n", g_result.bugs);
@@ -388,6 +435,9 @@ fuzz_loop()
 
     // Print result pretty
     print_result();
+
+    // free Everything
+
 
     free(g_config);
 }

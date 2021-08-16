@@ -10,7 +10,7 @@
 int
 cat_oracle(int ret_code, char* file_path){
     // False positive
-
+    
     // False negative
 
 }
