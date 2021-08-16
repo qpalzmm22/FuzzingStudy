@@ -22,13 +22,12 @@ int my_fwrite(void * ptr, int n, FILE * stream);
 int my_fread(void * ptr, int n, FILE * stream);
 
 void make_input_files(char* str, int len, char *in_data_path);
-
 int exec_process(char * str, int len, int itr, char *out_path, char *err_path);
 
 void make_argv();
 
 int default_oracle(int exit_code, char* input, int input_len, char* stdout_buff, char* stderr_buff);
-void init_fuzzer();
+void init_fuzzer(int (*oracle)(int, char*, int, char*, char*));
 
 void alarm_handler(int sig);
 void fuzz_loop();

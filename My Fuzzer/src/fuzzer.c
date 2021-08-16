@@ -271,7 +271,7 @@ default_oracle(int exit_code, char* input, int input_len, char* stdout_buff, cha
 
 // Sets and check the inputs
 void
-init_fuzzer()
+init_fuzzer(int (*oracle)(int, char*, int, char*, char* ))
 {
     g_config = (pConfig_t)malloc(sizeof(config_t)) ;
 
