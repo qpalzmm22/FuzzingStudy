@@ -20,7 +20,7 @@ cat_oracle(int ret_code, char* input_buff, int input_len , char* stdout_buff, ch
     } else { // False negative
         for(int i = 0; i < input_len; i++){
             if(input_buff[i] != stdout_buff[i]){
-                break;
+                break;  
             }
             if(i == input_len - 1){
                 return 0;

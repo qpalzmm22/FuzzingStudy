@@ -45,7 +45,7 @@ create_tmp_dirs()
 	if(mkdir(err_dir_path, S_IRWXU) != 0 ){
 		perror("ERROR in creating err directory");
         exit(1);
-	} 
+	}
 
     return dir_name;
 }
@@ -206,7 +206,6 @@ exec_process(char * str, int len, int itr, char *out_buff, char *err_buff)
             read_bytes = 0;
 
 			while((s = read(pipe_err[READEND], err_tmp_buff, 1024)) > 0){
-
                 if( read_bytes < 1024 ){
                    memcpy(out_buff + read_bytes, out_tmp_buff + read_bytes, s); 
                 }
@@ -259,7 +258,7 @@ make_argv()
     g_config->prog_argc = argc ;
 }   
 
-// Always return true...
+// Returns 1 if return code is 0.
 // TODO : How to make a generic oracle?? 
 int
 default_oracle(int exit_code, char* input, int input_len, char* stdout_buff, char* stderr_buff)
@@ -345,8 +344,11 @@ init_fuzzer(int (*oracle)(int, char*, int, char*, char* ))
 
     // Q. How to check the integrity of function address?
     // Q. Receive it through parameter?
-    g_config->oracle = ORACLE;
 
+    if(oracle != 0x0)
+        g_config->oracle = oracle;
+    else
+        g_config->oracle = ORACLE;
     // --------------------- Initialize g_results----------------
 
     // It's useless since it's declared global?
@@ -357,22 +359,21 @@ init_fuzzer(int (*oracle)(int, char*, int, char*, char* ))
 
 void print_result()
 {
-    printf("================== FUZZING RESULT ==================\n");
-    printf("=   Program Path : %20s            =\n", g_config->prog_path);
+    printf("================== FUZZING RESULT =========================================================================\n");
+    printf("=        Program Path : %70s            =\n", g_config->prog_path);
     for(int i = 1; i < g_config->prog_argc; i++){
-        printf("=    Prog arg[%d] : %20s            =\n", i, g_config->prog_argv[i]);
+        printf("=         Prog arg[%d] : %70s            =\n", i, g_config->prog_argv[i]);
     }
-    printf("=    Output Path : %20s            =\n", g_config->data_path);
-    printf("=     Test Cases : %20d            =\n", g_result.tot_test_cases);
-    printf("=     Bugs Found : %20d            =\n", g_result.bugs);
-    printf("====================================================\n");
+    printf("=         Output Path : %70s            =\n", g_config->data_path);
+    printf("=          Test Cases : %70d            =\n", g_result.tot_test_cases);
+    printf("=          Bugs Found : %70d            =\n", g_result.bugs);
+    printf("============================================================================================================\n");
 }
 
 void
 alarm_handler(int sig)
 {
     if(sig == SIGALRM){
-        printf("Times up...!\n");
         g_result.bugs++;
         printf("Program hanged !\nCheck %d-th files\n", g_itr);
         kill(g_pid, SIGKILL);
@@ -415,7 +416,7 @@ fuzz_loop()
 #endif
         if( !g_config->oracle(exit_code, rand_str, len, out_buff, err_buff)) {
             g_result.bugs++;  
-            printf("Bug found!\nCheck %d-th file\n", i);
+            printf("Bug found!\nCheck %d-th files\n", i);
         }
         g_result.tot_test_cases++;
 

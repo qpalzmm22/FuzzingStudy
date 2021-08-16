@@ -30,7 +30,7 @@ See `config.h`. Here, you can change the settings of fuzzer. Before start, YOU M
         - how to make Oracle generic?
         - Generic orcale returns `0` when 
   
-      - How to save the results => files, but only "unexpected outcomes" => can set it in config
+      - How to save the results => files, but only "unexpected outcomes" => can set it in config..? or must
 
     - Program config
       - How to input fuzzed strings in program(1. STDIN, 2. Argument, 3. fuzzed string in file).
@@ -38,9 +38,9 @@ See `config.h`. Here, you can change the settings of fuzzer. Before start, YOU M
   
 - TODO lists
   - M_ARG, M_FILE MODE
-  - Oracle
-  - review code.
-  - Hang Time interrupt.
+  - Oracles
+  - review code
+  - Make file only if they are reasonable.
 
 Assumptions
 - In, out files are in same path.

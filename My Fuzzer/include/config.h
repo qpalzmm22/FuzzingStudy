@@ -15,11 +15,11 @@
 
 //#define DEFAULT_FUZZER
 
-#define MIN_LEN 20
-#define MAX_LEN 30
-#define CH_START 32
-#define CH_RANGE 100
-#define PROG_PATH "/bin/cat"
+#define MIN_LEN 4000
+#define MAX_LEN 4000
+#define CH_START 0
+#define CH_RANGE 255
+#define PROG_PATH "bin/psudo_troff"
 //#define PROG_ARGS ""
 
 // If DEFAULT_PATH is not defined, DATA_PATH should be defined
@@ -28,7 +28,7 @@
 
 // #define EXEC_MODE M_STDIN
 
-#define TRIALS 100
+#define TRIALS 5000
 // #define TIMEOUT  
 // #define HANG_TIMEOUT 100
 // #define CHECK_N_BYTES 100
