@@ -20,7 +20,8 @@
 #define CH_START 32
 #define CH_RANGE 100
 #define PROG_PATH "/bin/cat"
-#define PROG_ARGS "-E -n"
+//#define PROG_ARGS ""
+
 // If DEFAULT_PATH is not defined, DATA_PATH should be defined
 // #define DEFAULT_PATH
 #define DATA_PATH "./data"
@@ -57,6 +58,12 @@
 #define PROG_PATH "./a.out"
 #endif /* ! PROG_PATH */
 
+#ifndef PROG_ARGS 
+#define PROG_ARGS ""
+#endif /* ! PROG_ARGS */
+
+//#define PROG_ARGS "-E -n"
+
 #ifdef DEFAULT_PATH
 
 #ifndef DATA_PATH 
@@ -75,7 +82,7 @@
 
 // Fuzzing timeout. Runs fuzzing for this amount of seconds. After, interrupt stops the program.
 #ifndef TIMEOUT 
-#define TIMEOUT 100
+#define TIMEOUT 3
 #endif /* ! TIMEOUT */
 
 #ifndef HANG_TIMEOUT 

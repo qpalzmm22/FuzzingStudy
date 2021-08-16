@@ -23,7 +23,7 @@ typedef struct _config{
  
     // binary path
     char prog_path[PATH_MAX] ;
-    char** prog_args ;
+    char** prog_argv ;
     char prog_argc;
 
     // input, output, error data path
