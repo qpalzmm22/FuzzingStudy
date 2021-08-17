@@ -5,7 +5,7 @@ int count_2 = 0;
 int count_3 = 0;
 
 int
-p_troff_oracle(int ret_code, char* input_buff, int input_len , char* stdout_buff, char* stderr_buff)
+ps_troff_oracle(int ret_code, char* input_buff, int input_len , char* stdout_buff, char* stderr_buff)
 {
 
     if(ret_code !=0){
@@ -34,7 +34,7 @@ print_stats(){
 int
 main()
 {
-    init_fuzzer(p_troff_oracle);
+    init_fuzzer(ps_troff_oracle);
     fuzz_loop();
 
     print_stats();

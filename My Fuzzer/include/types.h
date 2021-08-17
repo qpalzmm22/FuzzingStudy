@@ -32,6 +32,9 @@ typedef struct _config{
     // command line config
 	enum mode exec_mode ;  // 0 = STDIN, 1 = ARG, 2 = M_FILe
 
+    // Specifics
+    int tmp_buf_size ;
+
     // Exec
     int trial ; // default 10 ?
     int timeout ;

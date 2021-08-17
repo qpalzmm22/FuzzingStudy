@@ -93,10 +93,10 @@ make_input_files(char* str, int len, char *in_data_path)
 int
 exec_process(char * str, int len, int itr, char *out_buff, char *err_buff)
 {
-
-    char *prog_name = g_config->prog_path;
-    char ** argv = g_config->prog_argv;
-    char *dir_path = g_config->data_path;
+    char *prog_name = g_config->prog_path ;
+    char ** argv = g_config->prog_argv ;
+    char *dir_path = g_config->data_path ;
+    int buf_size = g_config->tmp_buf_size ;
 
     int pipe_in[2];
     int pipe_out[2];
@@ -118,6 +118,8 @@ exec_process(char * str, int len, int itr, char *out_buff, char *err_buff)
             exit(1);
             break;
         case 0 : ; // child receives by stdin 
+            close(pipe_out[READEND]) ;
+            close(pipe_err[READEND]) ;
 
             char in_file_path[PATH_MAX];
 
@@ -125,9 +127,6 @@ exec_process(char * str, int len, int itr, char *out_buff, char *err_buff)
             make_input_files(str, len, in_file_path);
 
             if(g_config->exec_mode == M_STDIN){
-
-                close(pipe_out[READEND]) ;
-                close(pipe_err[READEND]) ;
 
                 int sent = 0;
                 while(sent < len){
@@ -138,18 +137,29 @@ exec_process(char * str, int len, int itr, char *out_buff, char *err_buff)
                     }
                     sent += sent;
                 }
-                // write str by len amount
+            } else
+            // For file mode, make sure to locate file at the end of argvs
+            if(g_config->exec_mode == M_FILE){
 
-                dup2(pipe_in[READEND], STDIN_FILENO) ;
-
-                close(pipe_in[READEND]) ;
-                close(pipe_in[WRITEEND]) ;
-
-                dup2(pipe_out[WRITEEND], STDOUT_FILENO) ;
-                dup2(pipe_err[WRITEEND], STDERR_FILENO) ;
-
-                execv(prog_name, argv);
+                g_config->prog_argv[g_config->prog_argc] = in_file_path;
+                g_config->prog_argv =  (char**)realloc(argv, (g_config->prog_argc + 2) * sizeof(char*)) ;
+                assert(argv) ;
+                argv[g_config->prog_argc] = 0x0 ;
             }
+
+            // write str by len amount
+
+            dup2(pipe_in[READEND], STDIN_FILENO) ;
+
+            close(pipe_in[READEND]) ;
+            close(pipe_in[WRITEEND]) ;
+
+            dup2(pipe_out[WRITEEND], STDOUT_FILENO) ;
+            dup2(pipe_err[WRITEEND], STDERR_FILENO) ;
+
+            execv(prog_name, argv);
+        
+
 
             perror("Error in execlp");
             exit(1);
@@ -176,13 +186,13 @@ exec_process(char * str, int len, int itr, char *out_buff, char *err_buff)
 				exit(1);
 			}
 
-			char out_tmp_buff[1024];
+			char out_tmp_buff[buf_size];
             // TODO : consider... is this right?
             int s;
             int read_bytes = 0;
 
-			while((s = read(pipe_out[READEND], out_tmp_buff, 1024)) > 0){
-                if( read_bytes < 1024 ){
+			while((s = read(pipe_out[READEND], out_tmp_buff, buf_size)) > 0){
+                if( read_bytes < buf_size ){
                    memcpy(out_buff + read_bytes, out_tmp_buff + read_bytes, s); 
                 }
                 read_bytes += s;
@@ -201,12 +211,12 @@ exec_process(char * str, int len, int itr, char *out_buff, char *err_buff)
 				exit(1);
 			}
 
-			char err_tmp_buff[1024];
+			char err_tmp_buff[buf_size];
             
             read_bytes = 0;
 
-			while((s = read(pipe_err[READEND], err_tmp_buff, 1024)) > 0){
-                if( read_bytes < 1024 ){
+			while((s = read(pipe_err[READEND], err_tmp_buff, buf_size)) > 0){
+                if( read_bytes < buf_size ){
                    memcpy(out_buff + read_bytes, out_tmp_buff + read_bytes, s); 
                 }
                 read_bytes += s;
@@ -222,7 +232,6 @@ exec_process(char * str, int len, int itr, char *out_buff, char *err_buff)
     }
 
 }
-
 
 // g_config->prog_argv
 // strcpy? can't touch prog_args...
@@ -275,6 +284,7 @@ void
 init_fuzzer(int (*oracle)(int, char*, int, char*, char* ))
 {
     g_config = (pConfig_t)malloc(sizeof(config_t)) ;
+    assert(g_config);
 
     // in_config check
     if( MIN_LEN < 0 || MAX_LEN < 0 ){
@@ -315,10 +325,17 @@ init_fuzzer(int (*oracle)(int, char*, int, char*, char* ))
     
     // command line g_config
     if(EXEC_MODE != M_STDIN && EXEC_MODE != M_ARG && EXEC_MODE != M_FILE){
-        fprintf(stderr, "Exec mode must be between 0 ~ 2") ;
+        fprintf(stderr, "EXEC_MODE must be between 0 ~ 2") ;
         exit(1) ;
     }
 	g_config->exec_mode = EXEC_MODE;  // 0 = M_STDIN, 1 = ARG, 2 = M_FILe
+
+    // Pipe buffer size
+    if(TMP_MAX_SIZE <= 0 ){
+        fprintf(stderr, "tmp_buf_size must be greater than 0") ;
+        exit(1) ;
+    }
+    g_config->tmp_buf_size = TMP_MAX_SIZE;
 
     // Exec
     if(TRIALS < 0){
@@ -350,6 +367,9 @@ init_fuzzer(int (*oracle)(int, char*, int, char*, char* ))
         g_config->oracle = oracle;
     else
         g_config->oracle = ORACLE;
+
+    
+    signal(SIGINT, signal_handler);
     // --------------------- Initialize g_results----------------
 
     // It's useless since it's declared global?
@@ -360,7 +380,8 @@ init_fuzzer(int (*oracle)(int, char*, int, char*, char* ))
 
 void print_result()
 {
-    printf("================== FUZZING RESULT =========================================================================\n");
+    printf("\n\n");
+    printf("=========================================== FUZZING RESULT ================================================\n");
     printf("=        Program Path : %70s            =\n", g_config->prog_path);
     for(int i = 1; i < g_config->prog_argc; i++){
         printf("=         Prog arg[%d] : %70s            =\n", i, g_config->prog_argv[i]);
@@ -369,15 +390,20 @@ void print_result()
     printf("=          Test Cases : %70d            =\n", g_result.tot_test_cases);
     printf("=          Bugs Found : %70d            =\n", g_result.bugs);
     printf("============================================================================================================\n");
+    printf("\n\n");
 }
 
 void
-alarm_handler(int sig)
+signal_handler(int sig)
 {
     if(sig == SIGALRM){
         g_result.bugs++;
         printf("Program hanged !\nCheck %d-th files\n", g_itr);
         kill(g_pid, SIGKILL);
+    }
+    if(sig == SIGINT){
+        print_result();
+        exit(1);
     }
 }
 
@@ -392,13 +418,14 @@ fuzz_loop()
 
     srand(time(0x0));
     
-    signal(SIGALRM, alarm_handler);
+    signal(SIGALRM, signal_handler);
+    
 
     for(int i = 0; i < g_config->trial; i++){
         g_itr = i;
         // TODO size can change
-        char out_buff[1024];
-        char err_buff[1024];
+        char out_buff[g_config->tmp_buf_size];
+        char err_buff[g_config->tmp_buf_size];
 
         char *rand_str = (char *) malloc(sizeof(char) * (g_config->in_configs.max_len + 1));
 
@@ -421,8 +448,8 @@ fuzz_loop()
         }
         g_result.tot_test_cases++;
 
-        memset(out_buff, 0, 1024);
-        memset(err_buff, 0, 1024);
+        memset(out_buff, 0, g_config->tmp_buf_size);
+        memset(err_buff, 0, g_config->tmp_buf_size);
 
         free(rand_str);
     }

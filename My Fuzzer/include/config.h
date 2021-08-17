@@ -15,20 +15,22 @@
 
 //#define DEFAULT_FUZZER
 
-#define MIN_LEN 4000
-#define MAX_LEN 4000
+#define MIN_LEN 0
+#define MAX_LEN 1000
 #define CH_START 0
 #define CH_RANGE 255
-#define PROG_PATH "bin/psudo_troff"
-//#define PROG_ARGS ""
+#define PROG_PATH "/usr/local/bin/hunspell"
+#define PROG_ARGS "-d en_US"
 
 // If DEFAULT_PATH is not defined, DATA_PATH should be defined
 // #define DEFAULT_PATH
 #define DATA_PATH "./data"
 
 // #define EXEC_MODE M_STDIN
+// #define TMP_MAX_SIZE 1024
 
-#define TRIALS 5000
+
+#define TRIALS 500
 // #define TIMEOUT  
 // #define HANG_TIMEOUT 100
 // #define CHECK_N_BYTES 100
@@ -75,6 +77,10 @@
 #ifndef EXEC_MODE 
 #define EXEC_MODE M_STDIN
 #endif /* ! EXEC_MODE */
+
+#ifndef TMP_MAX_SIZE 
+#define TMP_MAX_SIZE 1024
+#endif /* ! TMP_MAX_SIZE */
 
 #ifndef TRIALS 
 #define TRIALS 100

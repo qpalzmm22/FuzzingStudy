@@ -29,7 +29,7 @@ void make_argv();
 int default_oracle(int exit_code, char* input, int input_len, char* stdout_buff, char* stderr_buff);
 void init_fuzzer(int (*oracle)(int, char*, int, char*, char*));
 
-void alarm_handler(int sig);
+void signal_handler(int sig);
 void fuzz_loop();
 
 
