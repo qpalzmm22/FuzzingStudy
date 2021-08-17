@@ -380,6 +380,7 @@ init_fuzzer(int (*oracle)(int, char*, int, char*, char* ))
 
 void print_result()
 {
+    
     printf("\n\n");
     printf("=========================================== FUZZING RESULT ================================================\n");
     printf("=        Program Path : %70s            =\n", g_config->prog_path);
