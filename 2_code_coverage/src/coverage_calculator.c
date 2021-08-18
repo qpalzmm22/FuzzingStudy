@@ -41,8 +41,10 @@ print_coverage(int * coverage)
 int 
 read_gcov_coverage(char * c_file, int * coverage)
 {
+    char target_file[PATH_MAX];
+    
+    sprintf(target_file, "%s.gcov", c_file);
 
-    strcat(c_file, ".gcov");
 
     FILE * fp;
     if((fp = fopen(c_file, "r")) == NULL){
@@ -60,14 +62,15 @@ read_gcov_coverage(char * c_file, int * coverage)
         coverage[i++] = line_number;
     }
     coverage[i] = -1;
-    return i;    
+    
     fclose(fp);
+    return i;    
 }
 
 void 
 execute_calc()
 {
-    char filename[PATH_MAX] = "cgi_decode_ex.c";
+    char filename[] = "cgi_decode_ex.c";
 
     int coverage[MAX_COVERAGE_LINE];
 
@@ -79,16 +82,16 @@ execute_calc()
 
 // Returns new size. 'to' array has combined array. Size must be guaranteed before run.
 // time complexity: O(n)... space complexity: O(n)
-int
-combine_set(int * to, int * from){
-    int tmp[MAX_COVERAGE_LINE];
-    int i = 0, j = 0, k = 0;
-    while(to[i] != -1){
-        if(to[i] > from[j]){
-            tmp[k++];
-        }
-    }
-}
+// int
+// combine_set(int * to, int * from){
+//     int tmp[MAX_COVERAGE_LINE];
+//     int i = 0, j = 0, k = 0;
+//     while(to[i] != -1){
+//         if(to[i] > from[j]){
+//             tmp[k++];
+//         }
+//     }
+// }
 
 int 
 main()
