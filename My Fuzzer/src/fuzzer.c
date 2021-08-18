@@ -436,13 +436,16 @@ fuzz_loop()
         printf("rand array : %s\n", rand_str);
 #endif
         alarm(g_config->timeout);
-
+        clock_t start = clock();
+        
         int exit_code = exec_process(rand_str, len, i, out_buff, err_buff);
 #ifdef DEBUG
         printf("ret code : %d\n", exit_code);
         printf("out_buff : %s\n", out_buff);
         printf("err_buff : %s\n", err_buff);
 #endif
+        clock_t end = clock();
+
         if( !g_config->oracle(exit_code, rand_str, len, out_buff, err_buff)) {
             g_result.bugs++;  
             printf("Bug found!\nCheck %d-th files\n", i);
