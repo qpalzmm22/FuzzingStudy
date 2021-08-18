@@ -54,12 +54,14 @@ cgi_decode(char * str, int len)
     return ret_str;
 }
 
-char * no_fuzz_cgi_decode(char * str)
+char * 
+no_fuzz_cgi_decode(char * str)
 {
     return cgi_decode(str, strlen(str));
 }
 
-int main()
+int
+main()
 {
     // Test1
     char* str_to_decode = "Hello +world%21";

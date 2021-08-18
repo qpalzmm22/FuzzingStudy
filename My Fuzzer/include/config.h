@@ -19,8 +19,8 @@
 #define MAX_LEN 1000
 #define CH_START 0
 #define CH_RANGE 255
-#define PROG_PATH "/usr/local/bin/hunspell"
-#define PROG_ARGS "-d en_US"
+#define PROG_PATH "psudo_troff/psudo_troff.out"
+// #define PROG_ARGS ""
 
 // If DEFAULT_PATH is not defined, DATA_PATH should be defined
 // #define DEFAULT_PATH
