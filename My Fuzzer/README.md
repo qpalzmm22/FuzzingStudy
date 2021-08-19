@@ -26,6 +26,8 @@ See `config.h`. Here, you can change the settings of fuzzer. Before start, YOU M
         - ret != 0 but right? `false negative`
           - In case of `cat`, see error code. 
         - `Run time errors` are bugs.
+
+
           - WIFEXITED
         - how to make Oracle generic?
         - Generic orcale returns `0` when 
