@@ -21,7 +21,10 @@ typedef struct _config{
     // fuzzer input config
     in_config_t in_configs;
  
-    // binary path
+    // fuzz mode 1 : src path
+    char src_path[PATH_MAX] ;
+
+    // fuzz mode 2 : binary path
     char prog_path[PATH_MAX] ;
     char** prog_argv ;
     char prog_argc;

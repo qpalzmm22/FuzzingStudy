@@ -12,6 +12,7 @@ See `config.h`. Here, you can change the settings of fuzzer. Before start, YOU M
 - Things To consider
   - How to receive configs -> with `config.h` file.
 
+
   - Config
     - Fuzzer config
       - Time interrupt timing
@@ -27,7 +28,6 @@ See `config.h`. Here, you can change the settings of fuzzer. Before start, YOU M
           - In case of `cat`, see error code. 
         - `Run time errors` are bugs.
 
-
           - WIFEXITED
         - how to make Oracle generic?
         - Generic orcale returns `0` when 
@@ -36,6 +36,7 @@ See `config.h`. Here, you can change the settings of fuzzer. Before start, YOU M
 
     - Program config
       - How to input fuzzed strings in program(1. STDIN, 2. Argument, 3. fuzzed string in file).
+      - Fuzz mode => fuzz binary file or source file.
       - With or without env. vars? with different envs? fuzz envs?
   
 - TODO lists

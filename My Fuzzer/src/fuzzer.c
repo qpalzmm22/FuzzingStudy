@@ -1,6 +1,6 @@
 #include "../include/fuzzer.h"
 #include "../include/fuzz_input_maker.h"
-#include "../../2_code_coverage/include/gcov_creater.h"
+#include "../include/gcov_creater.h"
 
 
 #define READEND 0
@@ -82,7 +82,7 @@ make_input_files(char* str, int len, char *in_data_path)
     FILE *fp =  fopen(in_data_path, "wb");
 
     if(fp == 0){
-        perror("ERROR in opening input file");
+        perror("Error in opening input file");
         exit(1);
     }
     if(my_fwrite(str, len, fp) != len){
@@ -137,15 +137,23 @@ exec_process(char * str, int len, int itr, char *out_buff, char *err_buff)
                         exit(1);    // CHECK
                     }
                     sent += sent;
-                }
-            } else
-            // For file mode, make sure to locate file at the end of argvs
-            if(g_config->exec_mode == M_FILE){
+                }                
+            } // For file mode, make sure to locate file at the end of argvs
+            else if(g_config->exec_mode == M_FILE){
 
-                g_config->prog_argv[g_config->prog_argc] = in_file_path;
-                g_config->prog_argv =  (char**)realloc(argv, (g_config->prog_argc + 2) * sizeof(char*)) ;
+                g_config->prog_argv[g_config->prog_argc++] = in_file_path;
+                g_config->prog_argv =  (char**)realloc(argv, (g_config->prog_argc + 1) * sizeof(char*)) ;
                 assert(argv) ;
                 argv[g_config->prog_argc] = 0x0 ;
+            } // For arg mode, make sure to locate fuzzed string at the end of argvs
+            else if(g_config->exec_mode == M_ARG){
+                // is memcpy ok?
+
+                g_config->prog_argv[g_config->prog_argc++] = str;
+                g_config->prog_argv =  (char**)realloc(argv, (g_config->prog_argc + 1) * sizeof(char*)) ;
+                assert(argv) ;
+                argv[g_config->prog_argc] = 0x0 ;
+
             }
 
             // write str by len amount
@@ -160,9 +168,7 @@ exec_process(char * str, int len, int itr, char *out_buff, char *err_buff)
 
             execv(prog_name, argv);
         
-
-
-            perror("Error in execlp");
+            perror("Error in execv");
             exit(1);
             break;
         default : ;
@@ -240,23 +246,22 @@ void
 make_argv()
 {
     // Does not consider the case where argvs come as fuzzed input.
-    
-    char * args = (char*)malloc((strlen(PROG_ARGS) + 1) * sizeof(char));
-    assert(args);
-    
-    // TODO : Better function...
-    strcpy(args, PROG_ARGS);    
-
     char ** argv = (char **) calloc( 1, sizeof(char*));
     assert(argv);
     
     argv[0] = g_config->prog_path;
     int argc = 1;
+    
+    char * args = (char*)malloc((strlen(PROG_ARGS) + 1) * sizeof(char));
+    assert(args);
+    
+    // TODO : Better function...?
+    strncpy(args, PROG_ARGS, strlen(PROG_ARGS) + 1);    
 
     char * arg = strtok(args, " ");
-    while( arg != 0x0){                                                                                                                                                                                                                                                                                       
+    while( arg != 0x0){                                                                                                                                                                                                                                                                                   
         argc++;
-        argv = (char**)realloc(argv, argc * sizeof(char*));
+        argv = (char**)realloc(argv, (argc + 1) * sizeof(char*));
         assert(argv);
         argv[argc - 1] = arg;
 
@@ -264,8 +269,6 @@ make_argv()
     }
 
     // adds null at the end of argv
-    argv = (char**)realloc(argv, (argc + 1) * sizeof(char*)) ;
-    assert(argv) ;
     argv[argc] = 0x0 ;
 
     g_config->prog_argv = argv ;
@@ -307,7 +310,8 @@ init_fuzzer(int (*oracle)(int, char*, int, char*, char* ))
     g_config->in_configs.ch_range = CH_RANGE ;
 
     char real_path[PATH_MAX] ;
-    // executable pat
+    // executable path
+
     if( realpath(PROG_PATH, real_path ) == NULL) {
         perror("Error on real path") ; 
         exit(1);
@@ -321,7 +325,6 @@ init_fuzzer(int (*oracle)(int, char*, int, char*, char* ))
     // Gets argvs
     // g_config->args needs to be freed;
     make_argv() ;
-    // Needs to be freed
 
     char * tmp = create_tmp_dirs() ;
     strcpy(g_config->data_path, tmp) ;
@@ -368,8 +371,6 @@ init_fuzzer(int (*oracle)(int, char*, int, char*, char* ))
 #endif /* HANG_TIMEOUT */ 
 
     // Q. How to check the integrity of function address?
-    // Q. Receive it through parameter?
-
     if(oracle != 0x0)
         g_config->oracle = oracle;
     else
@@ -381,7 +382,31 @@ init_fuzzer(int (*oracle)(int, char*, int, char*, char* ))
 
     // ---------------------- Coverage -------------------------
 
-    exec_gcc_coverage();
+    if( realpath(SRC_PATH, real_path ) == NULL) {
+        perror("Error on real path") ; 
+        exit(1);
+    } else if( access( real_path, R_OK ) == 0 ) {
+        strcpy(g_config->src_path, real_path) ;
+    } else {
+        perror("Can't access the file") ;
+        exit(1);
+    }
+
+    exec_gcc_coverage(g_config->src_path);
+    
+    printf("%s\n",g_config->src_path);
+
+    char *p_bin_path;
+
+    // a.out not good ???
+
+    if((p_bin_path = realpath("a.out", 0x0)) == 0x0){
+        perror("Error in real_path");
+        exit(1);
+    }
+    strcpy(g_config->prog_path, p_bin_path);
+    printf("%s\n",g_config->prog_path);
+    free(p_bin_path);
 
     // --------------------- Initialize g_results----------------
 
@@ -400,7 +425,7 @@ void print_result()
     printf("===================================================== FUZZING RESULT ================================================\n");
     printf("=                  Program Path : %70s            =\n", g_config->prog_path);
     for(int i = 1; i < g_config->prog_argc; i++){
-        printf("=                   Prog arg[%d] : %70s            =\n", i, g_config->prog_argv[i]);
+        printf("=                  Prog arg[%d] : %70s            =\n", i, g_config->prog_argv[i]);
     }
     printf("=                   Output Path : %70s            =\n", g_config->data_path);
     printf("=                    Test Cases : %70d            =\n", g_result.tot_test_cases);
