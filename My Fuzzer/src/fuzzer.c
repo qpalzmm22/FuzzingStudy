@@ -1,5 +1,6 @@
 #include "../include/fuzzer.h"
 #include "../include/fuzz_input_maker.h"
+#include "../../2_code_coverage/include/gcov_creater.h"
 
 
 #define READEND 0
@@ -238,8 +239,11 @@ exec_process(char * str, int len, int itr, char *out_buff, char *err_buff)
 void
 make_argv()
 {
+    // Does not consider the case where argvs come as fuzzed input.
+    
     char * args = (char*)malloc((strlen(PROG_ARGS) + 1) * sizeof(char));
     assert(args);
+    
     // TODO : Better function...
     strcpy(args, PROG_ARGS);    
 
@@ -351,14 +355,17 @@ init_fuzzer(int (*oracle)(int, char*, int, char*, char* ))
     }
     g_config->timeout = TIMEOUT ; // timeout by seconds
 
+
 #ifdef HANG_TIMEOUT
+
     // consider hang if this amount time passes
     if(HANG_TIMEOUT < 0){
         fprintf(stderr, "HANG_TIMEOUT must be 0 or greater than 0");
         exit(1);
     }
     g_config->hang_timeout = HANG_TIMEOUT;
- #endif /* HANG_TIMEOUT */ 
+
+#endif /* HANG_TIMEOUT */ 
 
     // Q. How to check the integrity of function address?
     // Q. Receive it through parameter?
@@ -368,13 +375,21 @@ init_fuzzer(int (*oracle)(int, char*, int, char*, char* ))
     else
         g_config->oracle = ORACLE;
 
-    
+    // --------------------- Other settings --------------------
+
     signal(SIGINT, signal_handler);
+
+    // ---------------------- Coverage -------------------------
+
+    exec_gcc_coverage();
+
     // --------------------- Initialize g_results----------------
 
     // It's useless since it's declared global?
     g_result.bugs = 0;
     g_result.tot_test_cases = 0;
+    g_result.exec_time = 0;
+    g_result.char_n = 0;
 
 }
 
@@ -382,15 +397,20 @@ void print_result()
 {
     
     printf("\n\n");
-    printf("=========================================== FUZZING RESULT ================================================\n");
-    printf("=        Program Path : %70s            =\n", g_config->prog_path);
+    printf("===================================================== FUZZING RESULT ================================================\n");
+    printf("=                  Program Path : %70s            =\n", g_config->prog_path);
     for(int i = 1; i < g_config->prog_argc; i++){
-        printf("=         Prog arg[%d] : %70s            =\n", i, g_config->prog_argv[i]);
+        printf("=                   Prog arg[%d] : %70s            =\n", i, g_config->prog_argv[i]);
     }
-    printf("=         Output Path : %70s            =\n", g_config->data_path);
-    printf("=          Test Cases : %70d            =\n", g_result.tot_test_cases);
-    printf("=          Bugs Found : %70d            =\n", g_result.bugs);
-    printf("============================================================================================================\n");
+    printf("=                   Output Path : %70s            =\n", g_config->data_path);
+    printf("=                    Test Cases : %70d            =\n", g_result.tot_test_cases);
+    printf("=  Total Exec. Time(in seconds) : %70.3f            =\n", g_result.exec_time);
+    printf("=  Avg. Exec. Time(in mseconds) : %70.3f            =\n", g_result.exec_time / g_result.tot_test_cases * 1000);
+    printf("= ----------------------------------------------------------------------------------------------------------------- =\n");
+    printf("=                    Bugs Found : %70d            =\n", g_result.bugs);
+    printf("=            Bugs per testcases : %70.3f            =\n", ((double)g_result.bugs) / g_result.tot_test_cases);
+    printf("=      Bugs per number of chars : %70.5f            =\n", ((double)g_result.bugs) / g_result.char_n);
+    printf("======================================================================================================================\n");
     printf("\n\n");
 }
 
@@ -432,19 +452,25 @@ fuzz_loop()
 
         // crate_rand_str could change when using mutabion-based fuzzing
         int len = create_rand_str(g_config->in_configs, rand_str);
+        g_result.char_n += len;
+
 #ifdef DEBUG
         printf("rand array : %s\n", rand_str);
 #endif
-        alarm(g_config->timeout);
+
+        alarm(g_config->hang_timeout);
         clock_t start = clock();
         
         int exit_code = exec_process(rand_str, len, i, out_buff, err_buff);
+
 #ifdef DEBUG
         printf("ret code : %d\n", exit_code);
         printf("out_buff : %s\n", out_buff);
         printf("err_buff : %s\n", err_buff);
 #endif
+
         clock_t end = clock();
+        g_result.exec_time +=(double) (end - start) / CLOCKS_PER_SEC; 
 
         if( !g_config->oracle(exit_code, rand_str, len, out_buff, err_buff)) {
             g_result.bugs++;  

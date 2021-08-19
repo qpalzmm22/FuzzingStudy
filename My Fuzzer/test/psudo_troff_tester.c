@@ -25,9 +25,11 @@ ps_troff_oracle(int ret_code, char* input_buff, int input_len , char* stdout_buf
 
 void
 print_stats(){
+    printf("================ Psudo Troff Oracle Statistic =================\n");
     printf("\\D followed by non-printable characters : %d\n", count_1);
     printf(". followed by newline : %d\n", count_2);
     printf("8 bit character followed by newline: %d\n", count_3);
+    printf("===============================================================\n");
 }
 
 
