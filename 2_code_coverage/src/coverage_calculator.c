@@ -21,8 +21,9 @@ trim(char* str)
     char * end = str + len - 1;
     while(str != end && isspace(*end)){
         end--;
-    } 
-    *(end + 1) = 0x0;
+    }
+
+    *(end+1)= 0x0;
 
     return str;
 }
@@ -38,6 +39,7 @@ print_coverage(int * coverage)
 }
 
 // Returns the size of coverage. Indicates the end of array by inserting -1 at the end.
+// Change to linked list ? 
 int 
 read_gcov_coverage(char * c_file, int * coverage)
 {
@@ -45,17 +47,18 @@ read_gcov_coverage(char * c_file, int * coverage)
     
     sprintf(target_file, "%s.gcov", c_file);
 
-
     FILE * fp;
-    if((fp = fopen(c_file, "r")) == NULL){
+    if((fp = fopen(target_file, "r")) == NULL){
         perror("Error in open .gcov file");
         exit(1);
     }
+    
     int i = 0;
     char line[4096];
     while(fgets(line, 4096, fp) != 0x0){
         char * covered = trim( strtok( line, ":" ));
         int line_number = atoi( trim( strtok( 0x0, ":" )));
+
         if(*covered == '-' || *covered == '#'){
             continue;
         }
@@ -67,31 +70,49 @@ read_gcov_coverage(char * c_file, int * coverage)
     return i;    
 }
 
+// Malloced. Need to be freed.
+char *
+extract_program(char *filepath)
+{
+   
+    int len = strlen(filepath);
+    for(int i = len - 1 ; i >= 0 ; i--){
+        if(filepath[i] == '/'){
+            char * filename = (char*) malloc(sizeof(char) * (len - i + 1));
+            strncpy(filename, filepath + i + 1 , len - i + 1);
+            return filename;
+        }
+    }
+    return 0x0;
+}
+
+
 void 
 execute_calc()
 {
-    char filename[] = "cgi_decode_ex.c";
+    char filepath[] = "./cgi_decode_ex.c";
+    char *args[] = {"Send+mail+to+me%40fuzzingbook.org"}; 
+    int argc = 2;
 
     int coverage[MAX_COVERAGE_LINE];
 
-    gcov_creater(filename, "Send+mail+to+me%40fuzzingbook.org");
-    read_gcov_coverage(filename, coverage);
 
+    gcov_creater(filepath, argc, args);
+
+    printf("hello\n");
+
+    char * filename = extract_program(filepath);
+    if(filename == 0x0){
+        fprintf(stderr, "You must give file path\n");
+        exit(1);
+    }
+    printf("fn : %s\n", filename);
+
+    read_gcov_coverage(filename, coverage);
+    
+    free(filename);
     print_coverage(coverage);
 }
-
-// Returns new size. 'to' array has combined array. Size must be guaranteed before run.
-// time complexity: O(n)... space complexity: O(n)
-// int
-// combine_set(int * to, int * from){
-//     int tmp[MAX_COVERAGE_LINE];
-//     int i = 0, j = 0, k = 0;
-//     while(to[i] != -1){
-//         if(to[i] > from[j]){
-//             tmp[k++];
-//         }
-//     }
-// }
 
 int 
 main()
