@@ -46,6 +46,8 @@ typedef struct _config{
 typedef struct _result{
     int bugs ;
     int tot_test_cases ;
+    double exec_time;
+    int char_n ;
 }result_t ,*pResult_t;
 
 

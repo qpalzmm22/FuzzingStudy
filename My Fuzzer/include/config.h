@@ -16,7 +16,7 @@
 //#define DEFAULT_FUZZER
 
 #define MIN_LEN 0
-#define MAX_LEN 1000
+#define MAX_LEN 3000
 #define CH_START 0
 #define CH_RANGE 255
 #define PROG_PATH "psudo_troff/psudo_troff.out"
@@ -30,8 +30,8 @@
 // #define TMP_MAX_SIZE 1024
 
 
-#define TRIALS 500
-// #define TIMEOUT  
+#define TRIALS 1000
+// #define TIMEOUT 3
 // #define HANG_TIMEOUT 100
 // #define CHECK_N_BYTES 100
 
@@ -64,8 +64,6 @@
 #define PROG_ARGS ""
 #endif /* ! PROG_ARGS */
 
-//#define PROG_ARGS "-E -n"
-
 #ifdef DEFAULT_PATH
 
 #ifndef DATA_PATH 
@@ -88,11 +86,12 @@
 
 // Fuzzing timeout. Runs fuzzing for this amount of seconds. After, interrupt stops the program.
 #ifndef TIMEOUT 
-#define TIMEOUT 3
+#define TIMEOUT 100
 #endif /* ! TIMEOUT */
 
+// Ends process after running HANG_TIMEOUT seconds. 
 #ifndef HANG_TIMEOUT 
-#define HANG_TIMEOUT 100
+#define HANG_TIMEOUT 3
 #endif /* ! HANG_TIMEOUT */
 
 #ifndef CHECK_N_BYTES
