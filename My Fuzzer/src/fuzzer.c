@@ -155,6 +155,9 @@ exec_process(char * str, int len, int itr, char *out_buff, char *err_buff)
                 assert(argv) ;
                 argv[g_config->prog_argc] = 0x0 ;
 
+            } else {
+                fprintf(stderr, "Error on exec_mode");
+                exit(1);
             }
 
             // write str by len amount
@@ -287,7 +290,7 @@ default_oracle(int exit_code, char* input, int input_len, char* stdout_buff, cha
         return 1;
 }
 
-// Sets and check the inputs
+// Sets and check the inputs, change so that it recieve pointer to config_t 
 void
 init_fuzzer(int (*oracle)(int, char*, int, char*, char* ))
 {
@@ -552,6 +555,7 @@ fuzz_loop()
 
         if(g_config->fuzz_mode == M_SRC){
         
+            // TODO : make it function
             char * src_wo_path = extract_program(g_config->src_path);
 
             // make gcov file

@@ -25,24 +25,24 @@
         1:   21:    hex_values['E'] = 14; hex_values['F'] = 15;
         1:   22:}
         1:   23:int cgi_decode(char *s, char *t) {
-       24:   24:    while (*s != '\0') {
-       23:   25:        if (*s == '+')
+        4:   24:    while (*s != '\0') {
+        4:   25:        if (*s == '+')
     #####:   26:            *t++ = ' ';
-      23*:   27:        else if ( *(s+1) != '\0' && *(s+2) != '\0' &&*s == '%') {
-    #####:   28:            int digit_high = *++s;
-    #####:   29:            int digit_low = *++s;
-    #####:   30:            if (hex_values[digit_high] >= 0 && hex_values[digit_low] >= 0) {
+       4*:   27:        else if ( *(s+1) != '\0' && *(s+2) != '\0' &&*s == '%') {
+        1:   28:            int digit_high = *++s;
+        1:   29:            int digit_low = *++s;
+        1:   30:            if (hex_values[digit_high] >= 0 && hex_values[digit_low] >= 0) {
     #####:   31:                *t++ = hex_values[digit_high] * 16 + hex_values[digit_low];
         -:   32:            }
         -:   33:            else
-    #####:   34:                return -1;
+        1:   34:                return -1;
         -:   35:        }
         -:   36:        else
-       23:   37:            *t++ = *s;
-       23:   38:        s++;
+        3:   37:            *t++ = *s;
+        3:   38:        s++;
         -:   39:    }
-        1:   40:    *t = '\0';
-        1:   41:    return 0;
+    #####:   40:    *t = '\0';
+    #####:   41:    return 0;
         -:   42:}
         -:   43:
         1:   44:int main(int argc, char *argv[]) {

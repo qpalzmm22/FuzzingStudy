@@ -1,9 +1,10 @@
 *.exe
 *.out
+
 result/errors/*
 result/outputs/*
 tmp*
-1_fuzzing_1/bin/*
+bin/*
 !1_fuzzing_1/bin/.gitkeep
 
 *.gcov

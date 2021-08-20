@@ -1,6 +1,6 @@
 #include "../include/coverage_calculator.h"
 
-#define DEBUG
+// #define DEBUG
 
 #define MAX_COVERAGE_LINE 4096
 
@@ -91,15 +91,21 @@ read_gcov_coverage(char * c_file, int * coverage)
 char *
 extract_program(char *filepath)
 {
+    char * filename = 0x0;
     int len = strlen(filepath);
     for(int i = len - 1 ; i >= 0 ; i--){
         if(filepath[i] == '/'){
-            char * filename = (char*) malloc(sizeof(char) * (len - i + 2));
+            filename = (char*) malloc(sizeof(char) * (len - i + 2));
             strncpy(filename, filepath + i + 1 , len - i + 2);
             return filename;
         }
     }
-    return filepath;
+    if(filename == 0x0){ // filepath = relative path
+        filename = (char *) malloc(sizeof(char) * (len + 1));
+        strcpy(filename, filepath);
+    }
+
+    return filename;
 }
 
 int
