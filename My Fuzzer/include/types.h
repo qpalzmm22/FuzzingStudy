@@ -1,9 +1,16 @@
 #ifndef _HAVE_TYPES_H_
 #define _HAVE_TYPES_H_
 
+#define MAX_COVERAGE_LINE 4096
+
 #include <linux/limits.h>
 
-enum mode{
+enum fz_mode{
+    /* 0 */ M_SRC,
+    /* 1 */ M_BIN,
+};
+
+enum ex_mode{
     /* 0 */ M_STDIN,
     /* 1 */ M_ARG,
     /* 2 */ M_FILE
@@ -21,10 +28,11 @@ typedef struct _config{
     // fuzzer input config
     in_config_t in_configs;
  
-    // fuzz mode 1 : src path
+    // fuzz mode 1 :=> input : source path
+    enum fz_mode  fuzz_mode ; 
     char src_path[PATH_MAX] ;
 
-    // fuzz mode 2 : binary path
+    // fuzz mode 2 :=> input : binary path
     char prog_path[PATH_MAX] ;
     char** prog_argv ;
     char prog_argc;
@@ -33,7 +41,7 @@ typedef struct _config{
     char data_path[PATH_MAX] ;
 
     // command line config
-	enum mode exec_mode ;  // 0 = STDIN, 1 = ARG, 2 = M_FILe
+	enum ex_mode exec_mode ;  // 0 = STDIN, 1 = ARG, 2 = M_FILe
 
     // Specifics
     int tmp_buf_size ;
@@ -51,6 +59,8 @@ typedef struct _result{
     int tot_test_cases ;
     double exec_time;
     int char_n ;
+    int tot_line_covered;
+    int cov_set[MAX_COVERAGE_LINE];
 }result_t ,*pResult_t;
 
 

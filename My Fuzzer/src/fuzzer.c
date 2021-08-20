@@ -1,6 +1,7 @@
 #include "../include/fuzzer.h"
 #include "../include/fuzz_input_maker.h"
 #include "../include/gcov_creater.h"
+#include "../include/coverage_calculator.h"
 
 
 #define READEND 0
@@ -309,19 +310,6 @@ init_fuzzer(int (*oracle)(int, char*, int, char*, char* ))
     g_config->in_configs.ch_start = CH_START ;
     g_config->in_configs.ch_range = CH_RANGE ;
 
-    char real_path[PATH_MAX] ;
-    // executable path
-
-    if( realpath(PROG_PATH, real_path ) == NULL) {
-        perror("Error on real path") ; 
-        exit(1);
-    } else if( access( real_path, X_OK ) == 0 ) {
-        strcpy(g_config->prog_path, real_path) ;
-    } else {
-        perror("Can't access the file") ;
-        exit(1);
-    }
-
     // Gets argvs
     // g_config->args needs to be freed;
     make_argv() ;
@@ -378,35 +366,62 @@ init_fuzzer(int (*oracle)(int, char*, int, char*, char* ))
 
     // --------------------- Other settings --------------------
 
+
     signal(SIGINT, signal_handler);
 
     // ---------------------- Coverage -------------------------
 
-    if( realpath(SRC_PATH, real_path ) == NULL) {
-        perror("Error on real path") ; 
-        exit(1);
-    } else if( access( real_path, R_OK ) == 0 ) {
-        strcpy(g_config->src_path, real_path) ;
-    } else {
-        perror("Can't access the file") ;
+    if(FUZZ_MODE != M_SRC && FUZZ_MODE != M_BIN){
+        fprintf(stderr, "FUZZ_MODE must be set. 1 for src mode, 2 for bin mode\n");
         exit(1);
     }
+    g_config->fuzz_mode = FUZZ_MODE; 
 
-    exec_gcc_coverage(g_config->src_path);
-    
-    printf("%s\n",g_config->src_path);
+    char real_path[PATH_MAX] ;
 
-    char *p_bin_path;
+    // executable path
 
-    // a.out not good ???
-
-    if((p_bin_path = realpath("a.out", 0x0)) == 0x0){
-        perror("Error in real_path");
-        exit(1);
+    if(g_config->fuzz_mode == M_BIN){
+        if( realpath(PROG_PATH, real_path ) == NULL) {
+            perror("Error on real path") ; 
+            exit(1);
+        } else if( access( real_path, X_OK ) == 0 ) {
+            strcpy(g_config->prog_path, real_path) ;
+        } else {
+            perror("Can't access the file") ;
+            exit(1);
+        }
     }
-    strcpy(g_config->prog_path, p_bin_path);
-    printf("%s\n",g_config->prog_path);
-    free(p_bin_path);
+
+    if(g_config->fuzz_mode == M_SRC){
+        if( realpath(SRC_PATH, real_path ) == NULL) {
+            perror("Error on real path") ; 
+            exit(1);
+        } else if( access( real_path, R_OK ) == 0 ) {
+            strcpy(g_config->src_path, real_path) ;
+        } else {
+            perror("Can't access the file") ;
+            exit(1);
+        }
+
+        exec_gcc_coverage(g_config->src_path);
+
+        char *p_bin_path;
+
+        // a.out not good ???
+        if((p_bin_path = realpath("a.out", 0x0)) == 0x0){
+            perror("Error in real_path");
+            exit(1);
+        }
+        strcpy(g_config->prog_path, p_bin_path);
+        free(p_bin_path);
+
+        char * filename = extract_program(g_config->src_path);
+        if(filename == 0x0){
+            fprintf(stderr, "Problem in extracting program name\n");
+            exit(1);
+        }
+    }
 
     // --------------------- Initialize g_results----------------
 
@@ -415,12 +430,27 @@ init_fuzzer(int (*oracle)(int, char*, int, char*, char* ))
     g_result.tot_test_cases = 0;
     g_result.exec_time = 0;
     g_result.char_n = 0;
-
+    
+    g_result.tot_line_covered = 0;
+    memset(g_result.cov_set, 0, MAX_COVERAGE_LINE);
 }
 
-void print_result()
+void
+calc_covered_lines()
 {
-    
+    // O(lines)
+    for(int i = 0; i < MAX_COVERAGE_LINE; i++){
+        if(g_result.cov_set[i] > 0){
+            g_result.tot_line_covered++;
+        }
+    }
+}
+
+void 
+print_result()
+{
+    calc_covered_lines();
+
     printf("\n\n");
     printf("===================================================== FUZZING RESULT ================================================\n");
     printf("=                  Program Path : %70s            =\n", g_config->prog_path);
@@ -431,11 +461,20 @@ void print_result()
     printf("=                    Test Cases : %70d            =\n", g_result.tot_test_cases);
     printf("=  Total Exec. Time(in seconds) : %70.3f            =\n", g_result.exec_time);
     printf("=  Avg. Exec. Time(in mseconds) : %70.3f            =\n", g_result.exec_time / g_result.tot_test_cases * 1000);
-    printf("= ----------------------------------------------------------------------------------------------------------------- =\n");
+    printf("= ---------------------------------------------------- BUG STATS -------------------------------------------------- =\n");
     printf("=                    Bugs Found : %70d            =\n", g_result.bugs);
     printf("=            Bugs per testcases : %70.3f            =\n", ((double)g_result.bugs) / g_result.tot_test_cases);
     printf("=      Bugs per number of chars : %70.5f            =\n", ((double)g_result.bugs) / g_result.char_n);
-    printf("======================================================================================================================\n");
+    
+    if(g_config->fuzz_mode == M_SRC){
+        printf("= ---------------------------------------------------- COVERAGE --------------------------------------------------- =\n");
+        printf("=           Total lines covered : %70d            =\n", g_result.tot_line_covered);
+        for(int i = 0; i < MAX_COVERAGE_LINE; i++){
+            if(g_result.cov_set[i] > 0)
+                printf("=            covered line[ %2d ] : %70d            =\n", i, g_result.cov_set[i]);
+        }
+    }
+    printf("=====================================================================================================================\n");
     printf("\n\n");
 }
 
@@ -460,13 +499,12 @@ fuzz_loop()
     if(g_config == 0x0){
         fprintf(stderr, "You must init first\n");
         exit(1);
-    }   
+    }
 
     srand(time(0x0));
     
     signal(SIGALRM, signal_handler);
     
-
     for(int i = 0; i < g_config->trial; i++){
         g_itr = i;
         // TODO size can change
@@ -506,6 +544,28 @@ fuzz_loop()
         memset(out_buff, 0, g_config->tmp_buf_size);
         memset(err_buff, 0, g_config->tmp_buf_size);
 
+        if(g_config->fuzz_mode == M_SRC){
+        
+            char * src_wo_path = extract_program(g_config->src_path);
+
+            // make gcov file
+            exec_gcov(src_wo_path);
+
+            // read gcov file
+            int cov_bit_map[MAX_COVERAGE_LINE] = {0};
+            int n = read_gcov_coverage(src_wo_path, cov_bit_map);
+
+            for(int i = 0 ; i < MAX_COVERAGE_LINE; i++){
+                g_result.cov_set[i] += cov_bit_map[i];
+            }
+
+            // remove gcov file
+            if(remove_gcda(src_wo_path) != 0){
+                fprintf(stderr, "Error in src_path. Src_path must have dot in it\n");
+                exit(1);
+            }
+            free(src_wo_path);
+        }
         free(rand_str);
     }
 

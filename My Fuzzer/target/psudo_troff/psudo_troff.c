@@ -23,7 +23,6 @@ main(){
     int bit8_flag = 0;
 
     while((c = getchar()) != EOF){
-        //printf("%c", (unsigned char)c);
 
         if(d_flag && (c < 9 || ( c > 13 && c < 31 ) || c > 126)){
             fprintf(stderr, "\\D followed by non-printable\n");

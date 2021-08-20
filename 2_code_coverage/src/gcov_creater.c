@@ -1,6 +1,6 @@
 #include "../include/gcov_creater.h"
 
-// #define DEBUG
+#define DEBUG
 
 void
 exec_gcc_coverage(char *filepath)
@@ -77,7 +77,7 @@ gcov_creater(char * filename, int argc, char **args)
         exit(1);
     }
 
-    char ** argv = (char**) malloc(sizeof(char) * (argc + 1));
+    char ** argv = (char**) malloc(sizeof(char*) * (argc + 1));
     argv[0] = filepath;
 
     for(int i = 1 ; i < argc; i++){

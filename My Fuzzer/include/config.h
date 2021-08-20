@@ -11,19 +11,18 @@
         |       User Config       | 
         V                         V
    ---------------------------------------------------------------------------------*/
-#define FUZZ_MODE 1
 
 //#define DEFAULT_FUZZER
 
 #define MIN_LEN 10
-#define MAX_LEN 10
+#define MAX_LEN 20
 
 #define CH_START 32
 #define CH_RANGE 32
 
-#define SRC_PATH "target/cgi_decode_ex.c"
 
-#define PROG_PATH "psudo_troff/psudo_troff.out"
+
+// #define PROG_PATH "psudo_troff/psudo_troff.out"
 // #define PROG_ARGS ""
 
 
@@ -35,7 +34,11 @@
 #define EXEC_MODE M_ARG
 // #define TMP_MAX_SIZE 1024
 
-#define TRIALS 100
+#define FUZZ_MODE M_SRC
+
+#define SRC_PATH "target/cgi_decode_ex.c"
+
+#define TRIALS 200
 // #define TIMEOUT 3
 // #define HANG_TIMEOUT 100
 // #define CHECK_N_BYTES 100
@@ -46,10 +49,10 @@
    ---------------------------------------------------------------------------------*/
 
 
-// 1 : Fuzz src code
-// 2 : Fuzz binary program
+// M_SRC : Fuzz src code
+// M_BIN : Fuzz binary program
 #ifndef FUZZ_MODE 
-#define FUZZ_MODE 1
+#define FUZZ_MODE  M_SRC
 #endif /* ! FUZZ_MODE */
 
 

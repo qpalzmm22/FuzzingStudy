@@ -13,6 +13,7 @@
         "config.h": "c",
         "string.h": "c",
         "stdlib.h": "c",
-        "fuzz_input_maker.h": "c"
+        "fuzz_input_maker.h": "c",
+        "coverage_calculator.h": "c"
     }
 }
