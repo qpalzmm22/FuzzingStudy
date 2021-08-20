@@ -1,6 +1,6 @@
 #include "../include/coverage_calculator.h"
 
-// #define DEBUG
+#define DEBUG
 
 #define MAX_COVERAGE_LINE 4096
 
@@ -35,6 +35,26 @@ print_coverage(int * coverage)
         }
     }
 }
+
+int
+get_branch_coverage(int* coverage, int * branch_coverage)
+{  
+    int tot_cov = 0;
+    for(int i = 0; i < MAX_COVERAGE_LINE - 1  ; i++){
+        if(coverage[i] && coverage[i + 1]){
+            branch_coverage[i] = 1;
+            tot_cov++;
+        }
+    }
+
+
+    if(branch_coverage[MAX_COVERAGE_LINE - 2] && branch_coverage[MAX_COVERAGE_LINE - 1]){
+        branch_coverage[MAX_COVERAGE_LINE - 1] = 1;
+        tot_cov++; 
+    }
+    return tot_cov;
+}
+
 
 // Returns the size of coverage. Indicates the end of array by inserting -1 at the end.
 // Change to linked list ? 
@@ -129,13 +149,39 @@ execute_calc()
     free(filename);
     print_coverage(coverage);
 }
+void
+execute_branch_cov()
+{
+    char filepath[] = "./cgi_decode_ex.c";
+    char *args[] = {"Send+mail+to+me%40fuzzingbook.org"}; 
+    int argc = 2;
+
+    int coverage[MAX_COVERAGE_LINE] = {0};
+    int branch_coverage[MAX_COVERAGE_LINE] = {0};
+
+    gcov_creater(filepath, argc, args);
+
+    char * filename = extract_program(filepath);
+
+    read_gcov_coverage(filename, coverage);
+    free(filename);
+
+    print_coverage(coverage);
+
+    get_branch_coverage(coverage, branch_coverage);
+
+    print_coverage(branch_coverage);
+}
 
 
 #ifdef DEBUG
 int 
 main()
 {
-    execute_calc();
+    //execute_calc();
+
+    execute_branch_cov();
+
     return 0;
 }
 

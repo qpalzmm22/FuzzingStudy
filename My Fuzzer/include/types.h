@@ -28,8 +28,8 @@ typedef struct _config{
     // fuzzer input config
     in_config_t in_configs;
  
-    // fuzz mode 1 :=> input : source path
-    enum fz_mode  fuzz_mode ; 
+    // fuzz mode M :=> input : source path
+    enum fz_mode fuzz_mode ; // 0 = Source code, 1 = Executable binary file
     char src_path[PATH_MAX] ;
 
     // fuzz mode 2 :=> input : binary path

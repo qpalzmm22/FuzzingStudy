@@ -24,7 +24,7 @@ int cgi_decode(char *s, char *t) {
     while (*s != '\0') {
         if (*s == '+')
             *t++ = ' ';
-        else if (*s == '%') {
+        else if ( *(s+1) != '\0' && *(s+2) != '\0' &&*s == '%') {
             int digit_high = *++s;
             int digit_low = *++s;
             if (hex_values[digit_high] >= 0 && hex_values[digit_low] >= 0) {

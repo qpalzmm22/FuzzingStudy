@@ -383,24 +383,24 @@ init_fuzzer(int (*oracle)(int, char*, int, char*, char* ))
 
     if(g_config->fuzz_mode == M_BIN){
         if( realpath(PROG_PATH, real_path ) == NULL) {
-            perror("Error on real path") ; 
+            perror("Error on finding program") ; 
             exit(1);
         } else if( access( real_path, X_OK ) == 0 ) {
             strcpy(g_config->prog_path, real_path) ;
         } else {
-            perror("Can't access the file") ;
+            perror("Can't access the program") ;
             exit(1);
         }
     }
 
     if(g_config->fuzz_mode == M_SRC){
         if( realpath(SRC_PATH, real_path ) == NULL) {
-            perror("Error on real path") ; 
+            perror("Error on finding source code") ; 
             exit(1);
         } else if( access( real_path, R_OK ) == 0 ) {
             strcpy(g_config->src_path, real_path) ;
         } else {
-            perror("Can't access the file") ;
+            perror("Can't access the source code") ;
             exit(1);
         }
 
@@ -449,11 +449,15 @@ calc_covered_lines()
 void 
 print_result()
 {
-    calc_covered_lines();
+    
 
     printf("\n\n");
     printf("===================================================== FUZZING RESULT ================================================\n");
-    printf("=                  Program Path : %70s            =\n", g_config->prog_path);
+    if(g_config->fuzz_mode == M_BIN){
+        printf("=                  Program Path : %70s            =\n", g_config->prog_path);
+    } else if(g_config->fuzz_mode == M_SRC){
+        printf("=                   Source Path : %70s            =\n", g_config->src_path);
+    }
     for(int i = 1; i < g_config->prog_argc; i++){
         printf("=                  Prog arg[%d] : %70s            =\n", i, g_config->prog_argv[i]);
     }
@@ -467,6 +471,8 @@ print_result()
     printf("=      Bugs per number of chars : %70.5f            =\n", ((double)g_result.bugs) / g_result.char_n);
     
     if(g_config->fuzz_mode == M_SRC){
+        calc_covered_lines();
+
         printf("= ---------------------------------------------------- COVERAGE --------------------------------------------------- =\n");
         printf("=           Total lines covered : %70d            =\n", g_result.tot_line_covered);
         for(int i = 0; i < MAX_COVERAGE_LINE; i++){

@@ -1,7 +1,6 @@
 #include "../include/coverage_calculator.h"
 
-// #define DEBUG
-
+#define DEBUG
 #define MAX_COVERAGE_LINE 4096
 
 char * 
@@ -29,13 +28,33 @@ print_coverage(int * coverage)
 {
     printf("Covered lines :\n");
     int i = 0;    
-    while(coverage[i] != -1){
-        printf("(%d)", coverage[i++]);
+    while(i < MAX_COVERAGE_LINE){
+        if(coverage[i] >= 1){
+            printf("(%d)", i);
+        }
+        i++;
     }
+    printf("\n");
 }
 
+int
+get_branch_coverage(int* coverage, int * branch_coverage)
+{  
+    int tot_cov = 0;
+    for(int i = 0; i < MAX_COVERAGE_LINE - 1  ; i++){
+        if(coverage[i] && coverage[i + 1]){
+            branch_coverage[i] = 1;
+            tot_cov++;
+        } else if(i >0 && coverage[i-1] && coverage[i]){
+            branch_coverage[i] = 1;
+            tot_cov++;
+        }
+    }
+    return tot_cov;
+}
+
+
 // Returns the size of coverage. Indicates the end of array by inserting -1 at the end.
-// Change to linked list ? 
 int 
 read_gcov_coverage(char * c_file, int * coverage)
 {
@@ -48,8 +67,7 @@ read_gcov_coverage(char * c_file, int * coverage)
         perror("Error in open .gcov file");
         exit(1);
     }
-    
-    int i = 0;
+    int tot_cov = 0;
     char line[4096];
     while(fgets(line, 4096, fp) != 0x0){
         char * covered = trim( strtok( line, ":" ));
@@ -58,12 +76,12 @@ read_gcov_coverage(char * c_file, int * coverage)
         if(*covered == '-' || *covered == '#'){
             continue;
         }
-        coverage[i++] = line_number;
+        coverage[line_number] = 1;
+        tot_cov++;
     }
-    coverage[i] = -1;
     
     fclose(fp);
-    return i;    
+    return tot_cov;    
 }
 
 // Malloced. Need to be freed.
@@ -73,12 +91,12 @@ extract_program(char *filepath)
     int len = strlen(filepath);
     for(int i = len - 1 ; i >= 0 ; i--){
         if(filepath[i] == '/'){
-            char * filename = (char*) malloc(sizeof(char) * (len - i + 1));
-            strncpy(filename, filepath + i + 1 , len - i + 1);
+            char * filename = (char*) malloc(sizeof(char) * (len - i + 2));
+            strncpy(filename, filepath + i + 1 , len - i + 2);
             return filename;
         }
     }
-    return 0x0;
+    return filepath;
 }
 
 int
@@ -88,10 +106,11 @@ remove_gcda(char *filepath)
     int len = strlen(filepath);
     for(int i = len - 1 ; i >= 0 ; i--){
         if(filepath[i] == '.'){
-            gcda_path = (char*) malloc(sizeof(char) * (i + 5) );
+            gcda_path = (char*) calloc(i + 5, sizeof(char));
+
             assert(gcda_path);
-            strncpy(gcda_path, filepath, i+1);
-            sprintf(gcda_path, "%sgcda", gcda_path);
+            strncpy(gcda_path, filepath, i + 1);
+            sprintf(gcda_path, "%s%s", gcda_path, "gcda");
             break;
         }
     }
@@ -99,9 +118,11 @@ remove_gcda(char *filepath)
         return -1;
     } else{
         if(remove(gcda_path) != 0){
+            free(gcda_path);
             perror("Error in removing gcda");
             exit(1);
         }
+        free(gcda_path);
         return 0;
     }
 }
@@ -114,20 +135,38 @@ execute_calc()
     char *args[] = {"Send+mail+to+me%40fuzzingbook.org"}; 
     int argc = 2;
 
-    int coverage[MAX_COVERAGE_LINE];
+    int coverage[MAX_COVERAGE_LINE] = {0};
 
     gcov_creater(filepath, argc, args);
 
     char * filename = extract_program(filepath);
-    if(filename == 0x0){
-        fprintf(stderr, "You must give file path\n");
-        exit(1);
-    }
 
     read_gcov_coverage(filename, coverage);
     
     free(filename);
     print_coverage(coverage);
+}
+void
+execute_branch_cov()
+{
+    char filepath[] = "./cgi_decode_ex.c";
+    char *args[] = {"Send+mail+to+me%40fuzzingbook.org"}; 
+    int argc = 2;
+
+    int coverage[MAX_COVERAGE_LINE] = {0};
+    int branch_coverage[MAX_COVERAGE_LINE] = {0};
+
+    gcov_creater(filepath, argc, args);
+
+    char * filename = extract_program(filepath);
+
+    read_gcov_coverage(filename, coverage);
+    free(filename);
+
+    get_branch_coverage(coverage, branch_coverage);
+
+    print_coverage(coverage);
+    print_coverage(branch_coverage);
 }
 
 
@@ -135,7 +174,10 @@ execute_calc()
 int 
 main()
 {
-    execute_calc();
+    //execute_calc();
+
+    execute_branch_cov();
+
     return 0;
 }
 

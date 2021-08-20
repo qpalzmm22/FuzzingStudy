@@ -25,10 +25,10 @@
         1:   21:    hex_values['E'] = 14; hex_values['F'] = 15;
         1:   22:}
         1:   23:int cgi_decode(char *s, char *t) {
-       11:   24:    while (*s != '\0') {
-       10:   25:        if (*s == '+')
+       24:   24:    while (*s != '\0') {
+       23:   25:        if (*s == '+')
     #####:   26:            *t++ = ' ';
-       10:   27:        else if (*s == '%') {
+      23*:   27:        else if ( *(s+1) != '\0' && *(s+2) != '\0' &&*s == '%') {
     #####:   28:            int digit_high = *++s;
     #####:   29:            int digit_low = *++s;
     #####:   30:            if (hex_values[digit_high] >= 0 && hex_values[digit_low] >= 0) {
@@ -38,8 +38,8 @@
     #####:   34:                return -1;
         -:   35:        }
         -:   36:        else
-       10:   37:            *t++ = *s;
-       10:   38:        s++;
+       23:   37:            *t++ = *s;
+       23:   38:        s++;
         -:   39:    }
         1:   40:    *t = '\0';
         1:   41:    return 0;

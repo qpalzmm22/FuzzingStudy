@@ -1,6 +1,6 @@
 #include "../include/gcov_creater.h"
 
-#define DEBUG
+// #define DEBUG
 
 void
 exec_gcc_coverage(char *filepath)

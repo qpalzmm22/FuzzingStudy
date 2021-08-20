@@ -15,33 +15,38 @@
 //#define DEFAULT_FUZZER
 
 #define MIN_LEN 10
-#define MAX_LEN 20
+#define MAX_LEN 500
 
 #define CH_START 32
 #define CH_RANGE 32
 
-
-
-// #define PROG_PATH "psudo_troff/psudo_troff.out"
-// #define PROG_ARGS ""
-
-
-// If DEFAULT_PATH is not defined, DATA_PATH should be defined
-
-// #define DEFAULT_PATH
-#define DATA_PATH "./data"
-
 #define EXEC_MODE M_ARG
-// #define TMP_MAX_SIZE 1024
-
 #define FUZZ_MODE M_SRC
 
-#define SRC_PATH "target/cgi_decode_ex.c"
 
-#define TRIALS 200
+// #define PROG_ARGS ""
+
+// ============= PATH CONFIG ^ ============= // 
+
+// If DEFAULT_PATH is not defined, DATA_PATH should be defined
+// #define DEFAULT_PATH
+#define PROG_PATH "/usr/bin/cat"
+#define SRC_PATH "target/cgi_decode_ex.c"
+#define DATA_PATH "./data"
+
+// ============= PATH CONFIG $ ============= //
+
+#define TRIALS 100
 // #define TIMEOUT 3
+
 // #define HANG_TIMEOUT 100
+
+// ============= BUFFER CONFIG ^ ============= //
+
+// #define TMP_MAX_SIZE 1024
 // #define CHECK_N_BYTES 100
+
+// ============= BUFFER CONFIG $ ============= //
 
 /* -------------------------------------------------------------------------------------
        |    DEFAULT VALUES     | 
@@ -75,6 +80,10 @@
 #ifndef PROG_PATH 
 #define PROG_PATH "./a.out"
 #endif /* ! PROG_PATH */
+
+#ifndef SRC_PATH 
+#define SRC_PATH "./helloWorld.c"
+#endif /* ! SRC_PATH */
 
 #ifndef PROG_ARGS 
 #define PROG_ARGS ""
