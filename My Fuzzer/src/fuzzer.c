@@ -292,10 +292,15 @@ default_oracle(int exit_code, char* input, int input_len, char* stdout_buff, cha
 
 // Sets and check the inputs, change so that it recieve pointer to config_t 
 void
-init_fuzzer(int (*oracle)(int, char*, int, char*, char* ))
+init_fuzzer(pConfig_t config)
 {
-    g_config = (pConfig_t)malloc(sizeof(config_t)) ;
-    assert(g_config);
+    
+    if(config == 0x0){
+        fprintf(stderr, "You must pass valid config\n");
+        exit(1);
+    }
+    g_config = config;
+
 
     // in_config check
     if( MIN_LEN < 0 || MAX_LEN < 0 ){
@@ -362,9 +367,7 @@ init_fuzzer(int (*oracle)(int, char*, int, char*, char* ))
 #endif /* HANG_TIMEOUT */ 
 
     // Q. How to check the integrity of function address?
-    if(oracle != 0x0)
-        g_config->oracle = oracle;
-    else
+    if(g_config->oracle == 0x0)
         g_config->oracle = ORACLE;
 
     // --------------------- Other settings --------------------
@@ -584,6 +587,5 @@ fuzz_loop()
 
     free(g_config->prog_argv[1]);
     free(g_config->prog_argv);
-    free(g_config);
 }
 

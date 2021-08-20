@@ -84,6 +84,39 @@ read_gcov_coverage(char * c_file, int * coverage)
     return tot_cov;    
 }
 
+int 
+read_gcov_coverage_with_bc_option(char * c_file, int * coverage)
+{
+    char target_file[PATH_MAX];
+    
+    sprintf(target_file, "%s.gcov", c_file);
+
+    FILE * fp;
+    if((fp = fopen(target_file, "r")) == NULL){
+        perror("Error in open .gcov file");
+        exit(1);
+    }
+    int tot_cov = 0;
+    char line[4096];
+    while(fgets(line, 4096, fp) != 0x0){
+
+        if(strncmp(line, "branch", 6)){
+            
+        }
+        // char * covered = trim( strtok( line, ":" ));
+        // int line_number = atoi( trim( strtok( 0x0, ":" )));
+
+        // if(*covered == '-' || *covered == '#'){
+        //     continue;
+        // }
+        coverage[line_number] = 1;
+        tot_cov++;
+    }
+    
+    fclose(fp);
+    return tot_cov;    
+}
+
 // Malloced. Need to be freed.
 char *
 extract_program(char *filepath)

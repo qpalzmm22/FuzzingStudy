@@ -1,6 +1,6 @@
 #include "../include/gcov_creater.h"
 
-// #define DEBUG
+#define DEBUG
 
 void
 exec_gcc_coverage(char *filepath)
@@ -59,7 +59,7 @@ exec_gcov(char * filepath)
             exit(1);
         case 0 : // child
 
-            execl("/usr/bin/gcov", "/usr/bin/gcov", filepath, NULL);
+            execl("/usr/bin/gcov", "/usr/bin/gcov","-b", "-c",  filepath, NULL);
             perror("Error in execl");
             exit(1);
             
@@ -67,6 +67,26 @@ exec_gcov(char * filepath)
             wait(0);
     }
 }
+
+void
+exec_gcov_with_bc_option(char * filepath)
+{
+    switch(fork()){
+        case -1 :
+            perror("Error in fork");
+            exit(1);
+        case 0 : // child
+
+            execl("/usr/bin/gcov", "/usr/bin/gcov", "-b", "-c", filepath, NULL);
+            perror("Error in execl");
+            exit(1);
+            
+        default : // parent
+            wait(0);
+    }
+}
+
+
 
 void
 gcov_creater(char * filename, int argc, char **args)

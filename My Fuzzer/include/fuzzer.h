@@ -27,7 +27,7 @@ int exec_process(char * str, int len, int itr, char *out_path, char *err_path);
 void make_argv();
 
 int default_oracle(int exit_code, char* input, int input_len, char* stdout_buff, char* stderr_buff);
-void init_fuzzer(int (*oracle)(int, char*, int, char*, char*));
+void init_fuzzer(pConfig_t config);
 
 void signal_handler(int sig);
 void fuzz_loop();

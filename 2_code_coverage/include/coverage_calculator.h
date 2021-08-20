@@ -7,6 +7,7 @@
 #include <ctype.h>
 #include <linux/limits.h>
 #include <assert.h>
+#include <regex.h>
 
 #include "../include/gcov_creater.h"
 

@@ -36,7 +36,10 @@ print_stats(){
 int
 main()
 {
-    init_fuzzer(ps_troff_oracle);
+    config_t config;
+    config.oracle = ps_troff_oracle;
+    
+    init_fuzzer(&config);
     fuzz_loop();
 
     print_stats();
