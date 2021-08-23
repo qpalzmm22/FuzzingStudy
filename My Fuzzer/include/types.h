@@ -4,6 +4,7 @@
 #define MAX_COVERAGE_LINE 4096
 
 #include <linux/limits.h>
+#include "coverage_calculator.h"
 
 enum fz_mode{
     /* 0 */ M_SRC,
@@ -15,6 +16,12 @@ enum ex_mode{
     /* 1 */ M_ARG,
     /* 2 */ M_FILE
 };
+
+enum cov_mode{
+    /* 0 */ M_LINE,
+    /* 1 */ M_BRANCH,
+};
+
 
 typedef struct _in_config{
     int min_len ;
@@ -31,6 +38,7 @@ typedef struct _config{
     // fuzz mode M :=> input : source path
     enum fz_mode fuzz_mode ; // 0 = Source code, 1 = Executable binary file
     char src_path[PATH_MAX] ;
+    char * src_wo_path ;
 
     // fuzz mode 2 :=> input : binary path
     char prog_path[PATH_MAX] ;
@@ -49,6 +57,9 @@ typedef struct _config{
     // Exec
     int trial ; // default 10 ?
     int timeout ;
+    
+    // Coverage
+    enum cov_mode coverage_mode;
 
     int hang_timeout ; // timeout by seconds
     int (*oracle)(int, char*, int, char*, char*) ;
@@ -61,6 +72,7 @@ typedef struct _result{
     int char_n ;
     int tot_line_covered;
     int cov_set[MAX_COVERAGE_LINE];
+    b_result_t *b_result;
 }result_t ,*pResult_t;
 
 

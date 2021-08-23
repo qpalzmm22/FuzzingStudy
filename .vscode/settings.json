@@ -14,6 +14,8 @@
         "string.h": "c",
         "stdlib.h": "c",
         "fuzz_input_maker.h": "c",
-        "coverage_calculator.h": "c"
+        "coverage_calculator.h": "c",
+        "ctype.h": "c",
+        "gcov_creater.h": "c"
     }
 }

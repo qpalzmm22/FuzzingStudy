@@ -8,7 +8,8 @@
 #include <unistd.h>
 
 /* -------------------------------------------------------------------------------------
-        |       User Config       | 
+        |                         | 
+        |       User Config       |
         V                         V
    ---------------------------------------------------------------------------------*/
 
@@ -26,20 +27,26 @@
 
 // #define PROG_ARGS ""
 
+
+
 // ============= PATH CONFIG ^ ============= // 
 
 // If DEFAULT_PATH is not defined, DATA_PATH should be defined
-// #define DEFAULT_PATH
+// #define DEFAULT_PATHa
 #define PROG_PATH "/usr/bin/cat"
 #define SRC_PATH "target/cgi_decode_ex.c"
 #define DATA_PATH "./data"
 
 // ============= PATH CONFIG $ ============= //
 
+
+
 #define TRIALS 100
 // #define TIMEOUT 3
 
 // #define HANG_TIMEOUT 100
+
+
 
 // ============= BUFFER CONFIG ^ ============= //
 
@@ -48,9 +55,20 @@
 
 // ============= BUFFER CONFIG $ ============= //
 
+
+
+// ============= COVERAGE CONFIG ^ ============= //
+
+#define COV_MODE M_BRANCH
+
+// ============= COVERAGE CONFIG $ ============= //
+
+
+
 /* -------------------------------------------------------------------------------------
-       |    DEFAULT VALUES     | 
-       V                       V
+         |                       | 
+         |     DEFAULT VALUES    |
+         V                       V
    ---------------------------------------------------------------------------------*/
 
 
@@ -126,6 +144,10 @@
 #ifndef CHECK_N_BYTES
 #define CHECK_N_BYTES 100
 #endif /* ! CHECK_N_BYTES */
+
+#ifndef COV_MODE
+#define COV_MODE M_LINE
+#endif /* ! COV_MODE */
 
 #ifndef ORACLE 
 #define ORACLE default_oracle

@@ -1,6 +1,6 @@
 #include "../include/gcov_creater.h"
 
-#define DEBUG
+// #define DEBUG
 
 void
 exec_gcc_coverage(char *filepath)
@@ -59,7 +59,7 @@ exec_gcov(char * filepath)
             exit(1);
         case 0 : // child
 
-            execl("/usr/bin/gcov", "/usr/bin/gcov","-b", "-c",  filepath, NULL);
+            execl("/usr/bin/gcov", "/usr/bin/gcov",  filepath, NULL);
             perror("Error in execl");
             exit(1);
             
@@ -115,6 +115,33 @@ gcov_creater(char * filename, int argc, char **args)
 }
 
 
+void
+gcov_branch_creater(char * filename, int argc, char **args)
+{
+    char * filepath;
+    if((filepath = realpath(filename, 0x0)) == 0x0){
+        perror("Error in real_path");
+        exit(1);
+    }
+
+    char ** argv = (char**) malloc(sizeof(char*) * (argc + 1));
+    argv[0] = filepath;
+
+    for(int i = 1 ; i < argc; i++){
+        argv[i] = args[i - 1];
+    }
+    argv[argc] = 0x0;
+
+    exec_gcc_coverage(filepath);
+
+    exec_bin(argv);
+    free(argv);
+
+    exec_gcov_with_bc_option(filepath);
+    free(filepath);
+}
+
+
 
 #ifdef DEBUG
 int
@@ -122,7 +149,7 @@ main()
 {
     char filename[] = "cgi_decode_ex.c";
 
-    char *args[] = {"Send+mail+to+me%40fuzzingbook.org"};
+    char *args[] = {"Send+mail+to+me+fuzzingbook.org"};
     int argc = 2;
 
     gcov_creater(filename, argc, args);

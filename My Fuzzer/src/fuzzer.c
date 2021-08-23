@@ -290,6 +290,8 @@ default_oracle(int exit_code, char* input, int input_len, char* stdout_buff, cha
         return 1;
 }
 
+
+
 // Sets and check the inputs, change so that it recieve pointer to config_t 
 void
 init_fuzzer(pConfig_t config)
@@ -396,10 +398,11 @@ init_fuzzer(pConfig_t config)
         } else {
             perror("Can't access the program") ;
             exit(1);
-        }
-    }
+        }   
+    } else if(g_config->fuzz_mode == M_SRC){
+        
+        
 
-    if(g_config->fuzz_mode == M_SRC){
         if( realpath(SRC_PATH, real_path ) == NULL) {
             perror("Error on finding source code") ; 
             exit(1);
@@ -409,24 +412,27 @@ init_fuzzer(pConfig_t config)
             perror("Can't access the source code") ;
             exit(1);
         }
+        char * src_wo_path = extract_program(g_config->src_path);
+        g_config->src_wo_path = src_wo_path;
+
+        if(COV_MODE != M_LINE && COV_MODE != M_BRANCH){
+            fprintf(stderr, "COV_MODE must be set. 0 for line mode, 1 for branch mode\n");
+            exit(1);
+        }
+        g_config->coverage_mode = COV_MODE;
 
         exec_gcc_coverage(g_config->src_path);
 
         char *p_bin_path;
-
-        // a.out not good ???
         if((p_bin_path = realpath("a.out", 0x0)) == 0x0){
             perror("Error in real_path");
             exit(1);
         }
+
         strcpy(g_config->prog_path, p_bin_path);
         free(p_bin_path);
 
-        char * filename = extract_program(g_config->src_path);
-        if(filename == 0x0){
-            fprintf(stderr, "Problem in extracting program name\n");
-            exit(1);
-        }
+
     }
 
     // --------------------- Initialize g_results----------------
@@ -439,6 +445,7 @@ init_fuzzer(pConfig_t config)
     
     g_result.tot_line_covered = 0;
     memset(g_result.cov_set, 0, MAX_COVERAGE_LINE);
+    g_result.b_result = (b_result_t *) calloc(MAX_COVERAGE_LINE, sizeof(b_result_t));
 }
 
 void
@@ -452,10 +459,22 @@ calc_covered_lines()
     }
 }
 
+// Assumes that gcov files do not return different branch structure.
+void
+union_branch_cov(b_result_t * p_result)
+{
+    for(int i = 0; i < g_result.tot_line_covered; i++){
+        g_result.b_result[i].line_num = p_result[i].line_num;
+        g_result.b_result[i].num_branch = p_result[i].num_branch; 
+        for(int j = 0; j < p_result[i].num_branch; j++){
+            g_result.b_result[i].runs[j] += p_result[i].runs[j];
+        }
+    }
+}
+
 void 
 print_result()
 {
-    
 
     printf("\n\n");
     printf("===================================================== FUZZING RESULT ================================================\n");
@@ -477,15 +496,27 @@ print_result()
     printf("=      Bugs per number of chars : %70.5f            =\n", ((double)g_result.bugs) / g_result.char_n);
     
     if(g_config->fuzz_mode == M_SRC){
-        calc_covered_lines();
-
         printf("= ---------------------------------------------------- COVERAGE --------------------------------------------------- =\n");
-        printf("=           Total lines covered : %70d            =\n", g_result.tot_line_covered);
-        for(int i = 0; i < MAX_COVERAGE_LINE; i++){
-            if(g_result.cov_set[i] > 0)
-                printf("=            covered line[ %2d ] : %70d            =\n", i, g_result.cov_set[i]);
+        if(g_config->coverage_mode == M_LINE){
+            calc_covered_lines();
+            
+            printf("=           Total lines covered : %70d            =\n", g_result.tot_line_covered);
+            for(int i = 0; i < MAX_COVERAGE_LINE; i++){
+                if(g_result.cov_set[i] > 0)
+                    printf("=            covered line[ %2d ] : %70d            =\n", i, g_result.cov_set[i]);
+            }
+        } else if(g_config->coverage_mode == M_BRANCH){
+
+            printf("Covered branches :\n");
+            for(int i = 0; i < g_result.tot_line_covered; i++){
+                printf("%d : \n",  g_result.b_result[i].line_num);
+                for(int j = 0; j < g_result.b_result[i].num_branch; j++ ){
+                    printf("[%d] => %d\n", j, g_result.b_result[i].runs[j]);
+                }
+            }
+            printf("\n");
         }
-    }
+    } 
     printf("=====================================================================================================================\n");
     printf("\n\n");
 }
@@ -558,26 +589,34 @@ fuzz_loop()
 
         if(g_config->fuzz_mode == M_SRC){
         
-            // TODO : make it function
-            char * src_wo_path = extract_program(g_config->src_path);
+           
 
-            // make gcov file
-            exec_gcov(src_wo_path);
+            if(g_config->coverage_mode == M_LINE){
+                // make gcov file
+                exec_gcov(g_config->src_wo_path);
 
-            // read gcov file
-            int cov_bit_map[MAX_COVERAGE_LINE] = {0};
-            int n = read_gcov_coverage(src_wo_path, cov_bit_map);
+                // read gcov file
+                int cov_bit_map[MAX_COVERAGE_LINE] = {0};
+                int n = read_gcov_coverage(g_config->src_wo_path, cov_bit_map);
 
-            for(int i = 0 ; i < MAX_COVERAGE_LINE; i++){
-                g_result.cov_set[i] += cov_bit_map[i];
-            }
+                for(int i = 0 ; i < MAX_COVERAGE_LINE; i++){
+                    g_result.cov_set[i] += cov_bit_map[i];
+                }
 
-            // remove gcov file
-            if(remove_gcda(src_wo_path) != 0){
-                fprintf(stderr, "Error in src_path. Src_path must have dot in it\n");
-                exit(1);
-            }
-            free(src_wo_path);
+                // remove gcov file
+                if(remove_gcda(g_config->src_wo_path) != 0){
+                    fprintf(stderr, "Error in src_path. Src_path must have dot in it\n");
+                    exit(1);
+                }
+            } else if(g_config->coverage_mode == M_BRANCH){
+                exec_gcov_with_bc_option(g_config->src_wo_path);
+
+                b_result_t * p_result = (b_result_t *)calloc(MAX_COVERAGE_LINE, sizeof(b_result_t));
+                g_result.tot_line_covered = read_gcov_coverage_with_bc_option(g_config->src_wo_path, p_result);
+                
+                union_branch_cov(p_result);
+                free(p_result);
+            }   
         }
         free(rand_str);
     }
@@ -585,6 +624,9 @@ fuzz_loop()
     // Print result pretty
     print_result();
 
+    free(g_result.b_result);
+
+    free(g_config->src_wo_path);
     free(g_config->prog_argv[1]);
     free(g_config->prog_argv);
 }
