@@ -22,6 +22,10 @@ enum cov_mode{
     /* 1 */ M_BRANCH,
 };
 
+enum rsg_type{
+    /* 0 */ T_RSG, // Random String Generator
+    /* 1 */ T_MUT, // Mutation Based Generator
+};
 
 typedef struct _in_config{
     int min_len ;
@@ -33,6 +37,7 @@ typedef struct _in_config{
 
 typedef struct _config{
     // fuzzer input config
+    enum rsg_type rnd_str_gen_type; 
     in_config_t in_configs;
  
     // fuzz mode M :=> input : source path
@@ -47,6 +52,9 @@ typedef struct _config{
 
     // input, output, error data path
     char data_path[PATH_MAX] ;
+
+    // seed corpus path
+    char seed_path[PATH_MAX] ;
 
     // command line config
 	enum ex_mode exec_mode ;  // 0 = STDIN, 1 = ARG, 2 = M_FILe

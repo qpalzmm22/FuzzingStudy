@@ -18,9 +18,10 @@ static int g_itr;
 char * 
 create_tmp_dirs()
 {
-	char template[64] = "tmp_XXXXXX";
     // TODO :   
     // Change to path
+	char template[64] = "tmp_XXXXXX";
+    
 
 	char * dir_name = (char *)malloc( 64 * sizeof(char));
 	
@@ -51,6 +52,13 @@ create_tmp_dirs()
 
     return dir_name;
 }
+
+void
+get_seed(){
+    // open directory
+    // iterate and receive the seed by my_fread
+}
+
 
 int
 my_fwrite(void * ptr, int n, FILE * stream)
@@ -304,6 +312,12 @@ init_fuzzer(pConfig_t config)
     g_config = config;
 
 
+    if (RSG_TYPE != T_RSG && RSG_TYPE != T_MUT){
+        fprintf(stderr, "RSG_TYPE must be between 0 ~ 1. 0 for randomly generated strings, 1 for Mutant based strings\n") ;
+        exit(1) ;
+    }
+    g_config->rnd_str_gen_type = RSG_TYPE ;
+
     // in_config check
     if( MIN_LEN < 0 || MAX_LEN < 0 ){
         fprintf(stderr, "FUZZER Length must be 0 or greater\n");
@@ -503,18 +517,15 @@ print_result()
             printf("=           Total lines covered : %70d            =\n", g_result.tot_line_covered);
             for(int i = 0; i < MAX_COVERAGE_LINE; i++){
                 if(g_result.cov_set[i] > 0)
-                    printf("=            covered line[ %2d ] : %70d            =\n", i, g_result.cov_set[i]);
+                    printf("=            covered line [ %2d ] : %70d            =\n", i, g_result.cov_set[i]);
             }
         } else if(g_config->coverage_mode == M_BRANCH){
-
-            printf("Covered branches :\n");
             for(int i = 0; i < g_result.tot_line_covered; i++){
-                printf("%d : \n",  g_result.b_result[i].line_num);
                 for(int j = 0; j < g_result.b_result[i].num_branch; j++ ){
-                    printf("[%d] => %d\n", j, g_result.b_result[i].runs[j]);
+                    printf("=           Branch Line [ %2d ] ::   :: Branch [ %2d ] => %40d    %3.f %%           =\n", g_result.b_result[i].line_num, j, g_result.b_result[i].runs[j], (double )g_result.b_result[i].runs[j] / g_config->trial * 100);
                 }
-            }
-            printf("\n");
+                printf("=                                                                                                                   =\n");
+            } 
         }
     } 
     printf("=====================================================================================================================\n");
@@ -529,7 +540,7 @@ signal_handler(int sig)
         printf("Program hanged !\nCheck %d-th files\n", g_itr);
         kill(g_pid, SIGKILL);
     }
-    if(sig == SIGINT){
+    if(sig == SIGINT){ 
         print_result();
         exit(1);
     }
@@ -554,12 +565,25 @@ fuzz_loop()
         char out_buff[g_config->tmp_buf_size];
         char err_buff[g_config->tmp_buf_size];
 
-        char *rand_str = (char *) malloc(sizeof(char) * (g_config->in_configs.max_len + 1));
-
         // crate_rand_str could change when using mutabion-based fuzzing
-        int len = create_rand_str(g_config->in_configs, rand_str);
-        g_result.char_n += len;
+        char *rand_str;
+        int len;
 
+        if(g_config->rnd_str_gen_type == T_RSG){
+
+            rand_str = (char *) malloc(sizeof(char) * (g_config->in_configs.max_len + 1));
+
+            len = create_rand_str(g_config->in_configs, rand_str);
+            
+
+        } else if(g_config->rnd_str_gen_type == T_MUT){
+
+            rand_str = (char *) malloc(sizeof(char) * (g_config->in_configs.max_len + 1 + g_config->trial));
+            
+            len = create_mut_str(g_config->trial, "hello World", 11, rand_str);
+        }
+        
+        g_result.char_n += len;
 #ifdef DEBUG
         printf("rand array : %s\n", rand_str);
 #endif
@@ -588,9 +612,6 @@ fuzz_loop()
         memset(err_buff, 0, g_config->tmp_buf_size);
 
         if(g_config->fuzz_mode == M_SRC){
-        
-           
-
             if(g_config->coverage_mode == M_LINE){
                 // make gcov file
                 exec_gcov(g_config->src_wo_path);

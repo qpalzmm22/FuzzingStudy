@@ -15,18 +15,19 @@
 
 //#define DEFAULT_FUZZER
 
+
+
+#define EXEC_MODE M_ARG
+#define FUZZ_MODE M_SRC
+#define RSG_TYPE T_MUT
+
 #define MIN_LEN 10
 #define MAX_LEN 500
 
 #define CH_START 32
 #define CH_RANGE 32
 
-#define EXEC_MODE M_ARG
-#define FUZZ_MODE M_SRC
-
-
 // #define PROG_ARGS ""
-
 
 
 // ============= PATH CONFIG ^ ============= // 
@@ -36,10 +37,9 @@
 #define PROG_PATH "/usr/bin/cat"
 #define SRC_PATH "target/cgi_decode_ex.c"
 #define DATA_PATH "./data"
+#define SEED_PATH "./seed_corpus"
 
 // ============= PATH CONFIG $ ============= //
-
-
 
 #define TRIALS 100
 // #define TIMEOUT 3
@@ -75,9 +75,12 @@
 // M_SRC : Fuzz src code
 // M_BIN : Fuzz binary program
 #ifndef FUZZ_MODE 
-#define FUZZ_MODE  M_SRC
+#define FUZZ_MODE M_SRC
 #endif /* ! FUZZ_MODE */
 
+#ifndef RSG_TYPE 
+#define RSG_TYPE T_RSG
+#endif /* ! RSG_TYPE */
 
 #ifndef MIN_LEN 
 #define MIN_LEN 20
@@ -102,6 +105,10 @@
 #ifndef SRC_PATH 
 #define SRC_PATH "./helloWorld.c"
 #endif /* ! SRC_PATH */
+
+#ifndef SEED_PATH 
+#define SEED_PATH "./seed_corpus"
+#endif /* ! SEED_PATH */
 
 #ifndef PROG_ARGS 
 #define PROG_ARGS ""
