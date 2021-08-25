@@ -21,11 +21,21 @@
 #define FUZZ_MODE M_SRC
 #define RSG_TYPE T_MUT
 
+
+// ============= PATH CONFIG ^ ============= // 
+
+
 #define MIN_LEN 10
 #define MAX_LEN 500
 
 #define CH_START 32
 #define CH_RANGE 32
+
+#define MAX_MUTATION 10
+
+
+// ============= PATH CONFIG ^ ============= // 
+
 
 // #define PROG_ARGS ""
 
@@ -41,7 +51,7 @@
 
 // ============= PATH CONFIG $ ============= //
 
-#define TRIALS 100
+#define MAX_TRIALS 1000
 // #define TIMEOUT 3
 
 // #define HANG_TIMEOUT 100
@@ -98,6 +108,10 @@
 #define CH_RANGE 32
 #endif /* ! CH_RANGE */
 
+#ifndef MAX_MUTATION 
+#define MAX_MUTATION 10
+#endif /* ! MAX_MUTATION */
+
 #ifndef PROG_PATH 
 #define PROG_PATH "./a.out"
 #endif /* ! PROG_PATH */
@@ -133,6 +147,7 @@
 #ifndef TMP_MAX_SIZE 
 #define TMP_MAX_SIZE 1024
 #endif /* ! TMP_MAX_SIZE */
+
 
 #ifndef TRIALS 
 #define TRIALS 100

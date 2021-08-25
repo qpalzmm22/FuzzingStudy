@@ -12,7 +12,7 @@ parse_url(char * url)
     char * pos[] = { p_urls_attr->scheme, p_urls_attr->netloc, p_urls_attr->path, p_urls_attr->query, p_urls_attr->fragment };
 
     regex_t preg;
-    if(regcomp( &preg, "^()+:\\/\\/([^\\/?#]*)([^?#]*)\\?\?([^#]*)#?(.*)$", REG_EXTENDED) != 0){
+    if(regcomp( &preg, "^(tcp)+:\\/\\/([^\\/?#]*)([^?#]*)\\?\?([^#]*)#?(.*)$", REG_EXTENDED) != 0){
         fprintf(stderr,"Error in compiling regex");
         exit(1);
     }
@@ -22,7 +22,6 @@ parse_url(char * url)
     if (regexec(&preg, url, MAX_MATCHES, matches, 0) == REG_NOMATCH ) {
         return 0x0;
     }
-    printf("regexec\n");
 
     size_t len;
     for(int i = 0; i < 5; i++){
@@ -33,7 +32,6 @@ parse_url(char * url)
             printf("[%d] : %s\n", i ,pos[i]);
         }
     }
-    printf("parse done\n");
 
     return p_urls_attr;
 }
@@ -42,7 +40,6 @@ parse_url(char * url)
 int
 is_valid_url(char * url)
 {
-    printf("test if %s is valid!\n", url);
     p_url_attr_t tmp = parse_url(url);
     if(tmp != 0x0){
         free(tmp);

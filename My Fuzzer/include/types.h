@@ -3,6 +3,8 @@
 
 #define MAX_COVERAGE_LINE 4096
 
+#define MAX_SEED_FILES 1024
+
 #include <linux/limits.h>
 #include "coverage_calculator.h"
 
@@ -32,13 +34,25 @@ typedef struct _in_config{
     int max_len ;
     int ch_start ; 
     int ch_range ;
+    int max_mutation ;
 }in_config_t;
+
+typedef struct _queue{
+    int size ;
+    int front ;
+    int rear ;
+    char queue[256][MAX_SEED_FILES] ;
+}queue_t;
 
 
 typedef struct _config{
+
     // fuzzer input config
     enum rsg_type rnd_str_gen_type; 
     in_config_t in_configs;
+
+    // Seed schedular
+    queue_t seed_queue;
  
     // fuzz mode M :=> input : source path
     enum fz_mode fuzz_mode ; // 0 = Source code, 1 = Executable binary file
@@ -63,7 +77,7 @@ typedef struct _config{
     int tmp_buf_size ;
 
     // Exec
-    int trial ; // default 10 ?
+    int max_trial ; 
     int timeout ;
     
     // Coverage

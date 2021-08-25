@@ -53,7 +53,7 @@ insert_byte(char *src, int len, char *dest)
 	int ind = rand() % (len + 1);
 
 	memcpy(dest, tmp_src, ind);
-	dest[ind] = rand() % (127-32) + 32;
+	dest[ind] = rand() % (127-32) + 32; //32 ~ 126 
 	memcpy(dest + ind + 1, tmp_src + ind, len - ind + 1);
 	return len + 1 ;
 }
@@ -91,13 +91,15 @@ run_mut(char * src, int len, char *dest)
 }
 
 int
-create_mut_str(int itr, char *src, int len, char *dest)
+create_mut_str(int max_mut, char *src, int len, char *dest)
 {
+	int itr = rand() % max_mut + 1 ;
 	memcpy(dest, src, len + 1);
 
 	for(int i = 0; i < itr; i++){
+		// if(i % 5 == 0)
+		//  	printf("%d : %s\n",i , dest);
 		len = run_mut(dest, len, dest);
-		///printf("%d : %s\n",i , dest);
 	}
 	return len;
 }

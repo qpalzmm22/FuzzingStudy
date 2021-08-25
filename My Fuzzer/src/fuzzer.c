@@ -13,6 +13,7 @@ static pConfig_t g_config;
 static result_t g_result;
 static pid_t g_pid;
 static int g_itr;
+static int g_seed_name_itr;
 
 // TODO : template
 char * 
@@ -21,7 +22,6 @@ create_tmp_dirs()
     // TODO :   
     // Change to path
 	char template[64] = "tmp_XXXXXX";
-    
 
 	char * dir_name = (char *)malloc( 64 * sizeof(char));
 	
@@ -51,12 +51,6 @@ create_tmp_dirs()
 	}
 
     return dir_name;
-}
-
-void
-get_seed(){
-    // open directory
-    // iterate and receive the seed by my_fread
 }
 
 
@@ -156,8 +150,7 @@ exec_process(char * str, int len, int itr, char *out_buff, char *err_buff)
                 argv[g_config->prog_argc] = 0x0 ;
             } // For arg mode, make sure to locate fuzzed string at the end of argvs
             else if(g_config->exec_mode == M_ARG){
-                // is memcpy ok?
-
+                
                 g_config->prog_argv[g_config->prog_argc++] = str;
                 g_config->prog_argv =  (char**)realloc(argv, (g_config->prog_argc + 1) * sizeof(char*)) ;
                 assert(argv) ;
@@ -167,8 +160,6 @@ exec_process(char * str, int len, int itr, char *out_buff, char *err_buff)
                 fprintf(stderr, "Error on exec_mode");
                 exit(1);
             }
-
-            // write str by len amount
 
             dup2(pipe_in[READEND], STDIN_FILENO) ;
 
@@ -206,7 +197,6 @@ exec_process(char * str, int len, int itr, char *out_buff, char *err_buff)
 			}
 
 			char out_tmp_buff[buf_size];
-            // TODO : consider... is this right?
             int s;
             int read_bytes = 0;
 
@@ -252,6 +242,117 @@ exec_process(char * str, int len, int itr, char *out_buff, char *err_buff)
 
 }
 
+void
+seed_enqueue(char * seed_file)
+{
+    if(g_config->seed_queue.size == MAX_SEED_FILES){
+        fprintf(stderr, "Queue is full\n");
+        return;
+    }
+    g_config->seed_queue.size++;
+    if(g_config->seed_queue.size == 1){
+        g_config->seed_queue.front = g_config->seed_queue.rear;
+    }
+
+    strcpy(g_config->seed_queue.queue[g_config->seed_queue.rear], seed_file);
+    g_config->seed_queue.rear = (g_config->seed_queue.rear + 1) % MAX_SEED_FILES;
+
+}
+
+char*
+seed_dequeue()
+{
+    char* seed;
+    if(g_config->seed_queue.size == 0){
+        fprintf(stderr, "No seed in the queue\n");
+        return 0x0;
+    }
+    g_config->seed_queue.size--;
+
+    seed = g_config->seed_queue.queue[g_config->seed_queue.front];
+    if(g_config->seed_queue.size == 0){
+        g_config->seed_queue.front = -1;
+    } else {
+        g_config->seed_queue.front = (g_config->seed_queue.front + 1) % MAX_SEED_FILES;
+    }
+    return seed;
+}
+
+
+// g_config->seed_queue.queue must be freed
+void
+seed_init()
+{
+    g_config->seed_queue.front = 0;
+    g_config->seed_queue.rear = 0;
+    g_config->seed_queue.size = 0;
+
+    DIR * dfd;
+
+    if((dfd = opendir(g_config->seed_path)) == 0x0){
+        perror("Error on opening seed_path dir");
+        exit(1);
+    }
+
+    int num_seed_files = 0;
+    struct dirent *dp;
+    while ((dp = readdir(dfd)) != NULL){
+        if(dp->d_type != DT_REG)
+            continue;
+        seed_enqueue(dp->d_name);
+    }
+}
+
+char *
+make_seed(char * str, int len, char* seed_file)
+{
+    char seed_path[PATH_MAX + 256];
+
+    sprintf(seed_file, "seed_%d", g_seed_name_itr++);
+    // TODO: with what name should we store the seed
+    sprintf(seed_path,"%s/%s",g_config->seed_path, seed_file);
+
+    FILE * fp;
+
+    if((fp = fopen(seed_path, "w")) == NULL){
+        perror("Error in opening seed file");
+        exit(1);
+    }
+
+    if(my_fwrite(str, len, fp) != len){
+        fprintf(stderr, "Error in my_writing seed file\n");
+    }
+
+    fclose(fp);
+
+    return seed_file;
+}
+
+int 
+read_seed(char* buf, char *seed_file)
+{
+    char seed_path[PATH_MAX + 256];
+    
+    sprintf(seed_path, "%s/%s",g_config->seed_path, seed_file);
+    FILE * fp;
+
+    if((fp = fopen(seed_path, "r")) == NULL){
+        perror("Error in opening seed file");
+        exit(1);
+    }
+
+    int received = 0;
+    int tmp;
+
+    while((tmp = fread(buf, 1, g_config->in_configs.max_len + 1 + g_config->in_configs.max_mutation, fp)) != 0){
+        received += tmp;
+    }
+    buf[received] = 0x0;
+
+    fclose(fp);
+
+    return received;
+}
 // g_config->prog_argv
 // strcpy? can't touch prog_args...
 void
@@ -298,13 +399,12 @@ default_oracle(int exit_code, char* input, int input_len, char* stdout_buff, cha
         return 1;
 }
 
-
-
 // Sets and check the inputs, change so that it recieve pointer to config_t 
 void
 init_fuzzer(pConfig_t config)
 {
-    
+    char real_path[PATH_MAX] ;
+
     if(config == 0x0){
         fprintf(stderr, "You must pass valid config\n");
         exit(1);
@@ -317,6 +417,21 @@ init_fuzzer(pConfig_t config)
         exit(1) ;
     }
     g_config->rnd_str_gen_type = RSG_TYPE ;
+    
+    if(g_config->rnd_str_gen_type == T_MUT){
+        if( realpath(SEED_PATH, real_path ) == NULL) {
+            perror("Error on finding seed directory") ; 
+            exit(1);
+        } else if( access( real_path, R_OK ) == 0 ) {
+            strcpy(g_config->seed_path, real_path) ;
+        } else {
+            perror("Can't access the seed directory") ;
+            exit(1);
+        }
+
+        seed_init();
+    }
+
 
     // in_config check
     if( MIN_LEN < 0 || MAX_LEN < 0 ){
@@ -327,12 +442,19 @@ init_fuzzer(pConfig_t config)
         fprintf(stderr, "CH_START, CH_RANGE must be 0 or greater\n");
         exit(1);    
     }
+    if(MAX_MUTATION < 0){
+        fprintf(stderr, "MAX_MUTATION must be 0 or greater\n");
+        exit(1);   
+    }
 
-    // rand string generator
+    // random && mutation based string generator
     g_config->in_configs.min_len = MIN_LEN ;
     g_config->in_configs.max_len = MAX_LEN ;
     g_config->in_configs.ch_start = CH_START ;
     g_config->in_configs.ch_range = CH_RANGE ;
+
+    g_config->in_configs.max_mutation = MAX_MUTATION;
+
 
     // Gets argvs
     // g_config->args needs to be freed;
@@ -351,17 +473,17 @@ init_fuzzer(pConfig_t config)
 
     // Pipe buffer size
     if(TMP_MAX_SIZE <= 0 ){
-        fprintf(stderr, "tmp_buf_size must be greater than 0") ;
+        fprintf(stderr, "TMP_MAX_SIZE must be greater than 0") ;
         exit(1) ;
     }
     g_config->tmp_buf_size = TMP_MAX_SIZE;
 
     // Exec
-    if(TRIALS < 0){
+    if(MAX_TRIALS < 0){
         fprintf(stderr, "TRIALS must be 0 or greater") ;
         exit(1) ;
     }
-    g_config->trial = TRIALS ; 
+    g_config->max_trial = MAX_TRIALS ; 
 
 
     if(TIMEOUT < 0){
@@ -399,7 +521,6 @@ init_fuzzer(pConfig_t config)
     }
     g_config->fuzz_mode = FUZZ_MODE; 
 
-    char real_path[PATH_MAX] ;
 
     // executable path
 
@@ -414,8 +535,6 @@ init_fuzzer(pConfig_t config)
             exit(1);
         }   
     } else if(g_config->fuzz_mode == M_SRC){
-        
-        
 
         if( realpath(SRC_PATH, real_path ) == NULL) {
             perror("Error on finding source code") ; 
@@ -442,11 +561,8 @@ init_fuzzer(pConfig_t config)
             perror("Error in real_path");
             exit(1);
         }
-
         strcpy(g_config->prog_path, p_bin_path);
         free(p_bin_path);
-
-
     }
 
     // --------------------- Initialize g_results----------------
@@ -456,10 +572,12 @@ init_fuzzer(pConfig_t config)
     g_result.tot_test_cases = 0;
     g_result.exec_time = 0;
     g_result.char_n = 0;
-    
+     
     g_result.tot_line_covered = 0;
     memset(g_result.cov_set, 0, MAX_COVERAGE_LINE);
     g_result.b_result = (b_result_t *) calloc(MAX_COVERAGE_LINE, sizeof(b_result_t));
+
+    g_seed_name_itr = 0;
 }
 
 void
@@ -474,16 +592,21 @@ calc_covered_lines()
 }
 
 // Assumes that gcov files do not return different branch structure.
-void
+// returns 1 if it increased total coverage.
+int
 union_branch_cov(b_result_t * p_result)
 {
+    int inc_flag = 0;
     for(int i = 0; i < g_result.tot_line_covered; i++){
         g_result.b_result[i].line_num = p_result[i].line_num;
         g_result.b_result[i].num_branch = p_result[i].num_branch; 
         for(int j = 0; j < p_result[i].num_branch; j++){
+            if(g_result.b_result[i].runs[j] == 0 && p_result[i].runs[j] != 0 )
+                inc_flag = 1;
             g_result.b_result[i].runs[j] += p_result[i].runs[j];
         }
     }
+    return inc_flag;
 }
 
 void 
@@ -522,7 +645,7 @@ print_result()
         } else if(g_config->coverage_mode == M_BRANCH){
             for(int i = 0; i < g_result.tot_line_covered; i++){
                 for(int j = 0; j < g_result.b_result[i].num_branch; j++ ){
-                    printf("=           Branch Line [ %2d ] ::   :: Branch [ %2d ] => %40d    %3.f %%           =\n", g_result.b_result[i].line_num, j, g_result.b_result[i].runs[j], (double )g_result.b_result[i].runs[j] / g_config->trial * 100);
+                    printf("=           Branch Line [ %2d ] ::   :: Branch [ %2d ] => %40d    %3.f %%           =\n", g_result.b_result[i].line_num, j, g_result.b_result[i].runs[j], (double )g_result.b_result[i].runs[j] / g_result.tot_test_cases * 100);
                 }
                 printf("=                                                                                                                   =\n");
             } 
@@ -537,7 +660,7 @@ signal_handler(int sig)
 {
     if(sig == SIGALRM){
         g_result.bugs++;
-        printf("Program hanged !\nCheck %d-th files\n", g_itr);
+        printf(" *** Program hanged ! *** \n *** Check %d-th files *** \n", g_itr);
         kill(g_pid, SIGKILL);
     }
     if(sig == SIGINT){ 
@@ -559,8 +682,13 @@ fuzz_loop()
     
     signal(SIGALRM, signal_handler);
     
-    for(int i = 0; i < g_config->trial; i++){
-        g_itr = i;
+    int i = 0;
+    while(1){
+
+        // Termination Condition
+        //alarm(g_config->timeout);
+
+        g_itr = i++;
         // TODO size can change
         char out_buff[g_config->tmp_buf_size];
         char err_buff[g_config->tmp_buf_size];
@@ -568,7 +696,7 @@ fuzz_loop()
         // crate_rand_str could change when using mutabion-based fuzzing
         char *rand_str;
         int len;
-
+        char * seed_file;
         if(g_config->rnd_str_gen_type == T_RSG){
 
             rand_str = (char *) malloc(sizeof(char) * (g_config->in_configs.max_len + 1));
@@ -578,9 +706,14 @@ fuzz_loop()
 
         } else if(g_config->rnd_str_gen_type == T_MUT){
 
-            rand_str = (char *) malloc(sizeof(char) * (g_config->in_configs.max_len + 1 + g_config->trial));
+            rand_str = (char *) malloc(sizeof(char) * (g_config->in_configs.max_len + 1 + g_config->in_configs.max_mutation));
             
-            len = create_mut_str(g_config->trial, "hello World", 11, rand_str);
+            seed_file = seed_dequeue();
+            len = read_seed(rand_str, seed_file);
+#ifdef DEBUG
+            printf("seed array : %s\n", rand_str);
+#endif
+            len = create_mut_str(g_config->in_configs.max_mutation, rand_str, len, rand_str);
         }
         
         g_result.char_n += len;
@@ -604,7 +737,7 @@ fuzz_loop()
 
         if( !g_config->oracle(exit_code, rand_str, len, out_buff, err_buff)) {
             g_result.bugs++;  
-            printf("Bug found!\nCheck %d-th files\n", i);
+            printf(" *** Bug found! *** \n *** Check %d-th files *** \n", i);
         }
         g_result.tot_test_cases++;
 
@@ -612,7 +745,8 @@ fuzz_loop()
         memset(err_buff, 0, g_config->tmp_buf_size);
 
         if(g_config->fuzz_mode == M_SRC){
-            if(g_config->coverage_mode == M_LINE){
+
+            if(g_config->coverage_mode == M_LINE){  // TODO : FIX so that it gives feedback(seed)
                 // make gcov file
                 exec_gcov(g_config->src_wo_path);
 
@@ -623,21 +757,31 @@ fuzz_loop()
                 for(int i = 0 ; i < MAX_COVERAGE_LINE; i++){
                     g_result.cov_set[i] += cov_bit_map[i];
                 }
-
-                // remove gcov file
-                if(remove_gcda(g_config->src_wo_path) != 0){
-                    fprintf(stderr, "Error in src_path. Src_path must have dot in it\n");
-                    exit(1);
-                }
             } else if(g_config->coverage_mode == M_BRANCH){
                 exec_gcov_with_bc_option(g_config->src_wo_path);
 
                 b_result_t * p_result = (b_result_t *)calloc(MAX_COVERAGE_LINE, sizeof(b_result_t));
                 g_result.tot_line_covered = read_gcov_coverage_with_bc_option(g_config->src_wo_path, p_result);
                 
-                union_branch_cov(p_result);
+                // Something is added to branch coverage
+                if(union_branch_cov(p_result) > 0){
+                    char new_seed_file[256];
+                    // make seed_file
+                    printf("add %s to seed\n", rand_str);
+                    make_seed(rand_str, len, new_seed_file);
+
+                    seed_enqueue(new_seed_file);
+                } else {
+                    seed_enqueue(seed_file);
+                }
                 free(p_result);
-            }   
+            }
+
+            // remove gcov file
+            if(remove_gcda(g_config->src_wo_path) != 0){
+                fprintf(stderr, "Error in src_path. Src_path must have dot in it\n");
+                exit(1);
+            }
         }
         free(rand_str);
     }
@@ -646,9 +790,7 @@ fuzz_loop()
     print_result();
 
     free(g_result.b_result);
-
     free(g_config->src_wo_path);
     free(g_config->prog_argv[1]);
     free(g_config->prog_argv);
 }
-

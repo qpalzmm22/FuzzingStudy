@@ -10,17 +10,17 @@ main()
     
     char src[] = "http://www.google.com/search?q=fuzzing";
     int len = strlen(src);
-    char dest[len + 50 + 1];
-    len = create_mut_str(50, src, len, dest);
+    char dest[1024];
+    len = create_mut_str(100, src, len, dest);
     
-    int i = 0;
+    unsigned long long i = 0;
     
     while(is_valid_url(dest) != 1){
-        printf("%s is invalid\n", dest);
-        memset(dest, 0, len + 50 + 1);
-        len = create_mut_str(50, src, len, dest);
+        //printf("%llu : %s is invalid\n",i, dest);
+        memset(dest, 0, 1024);
+        len = create_mut_str(100, src, len, dest);
         i++;
     }
-    printf("%s is valid! %d - times\n", dest, i);
+    printf("%s is valid! %llu - times\n", dest, i);
     return 0;
 }

@@ -7,7 +7,7 @@
 
 typedef struct _url_attr
 {
-    char scheme[1024];
+    char scheme[32];
     char netloc[1024];
     char path[1024];
     char query[1024];
