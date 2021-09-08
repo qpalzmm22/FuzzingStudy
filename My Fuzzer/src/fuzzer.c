@@ -245,20 +245,24 @@ exec_process(char * str, int len, int itr, char *out_buff, char *err_buff)
 void
 seed_enqueue(char * seed_file)
 {
-    if(g_config->seed_queue.size == MAX_SEED_FILES){
+    if(g_config->seed_queue.size + 1 == MAX_SEED_FILES){
         fprintf(stderr, "Queue is full\n");
         return;
     }
     g_config->seed_queue.size++;
-    if(g_config->seed_queue.size == 1){
-        g_config->seed_queue.front = g_config->seed_queue.rear;
-    }
+    
+    // if(g_config->seed_queue.size == 1){
+    //     g_config->seed_queue.front = g_config->seed_queue.rear;
+    // }
 
+    // vulnerable
     strcpy(g_config->seed_queue.queue[g_config->seed_queue.rear], seed_file);
     g_config->seed_queue.rear = (g_config->seed_queue.rear + 1) % MAX_SEED_FILES;
 
 }
 
+
+// Dequeues a seed from seed queue.
 char*
 seed_dequeue()
 {
@@ -309,7 +313,6 @@ make_seed(char * str, int len, char* seed_file)
     char seed_path[PATH_MAX + 256];
 
     sprintf(seed_file, "seed_%d", g_seed_name_itr++);
-    // TODO: with what name should we store the seed
     sprintf(seed_path,"%s/%s",g_config->seed_path, seed_file);
 
     FILE * fp;
@@ -656,6 +659,17 @@ print_result()
 }
 
 void
+exit_protocol()
+{
+    print_result();
+
+    free(g_result.b_result);
+    free(g_config->src_wo_path);
+    free(g_config->prog_argv[1]);
+    free(g_config->prog_argv);
+}
+
+void
 signal_handler(int sig)
 {
     if(sig == SIGALRM){
@@ -665,6 +679,7 @@ signal_handler(int sig)
     }
     if(sig == SIGINT){ 
         print_result();
+        // Do we need to free? 
         exit(1);
     }
 }
@@ -686,7 +701,14 @@ fuzz_loop()
     while(1){
 
         // Termination Condition
-        //alarm(g_config->timeout);
+        // This is not exactly how much time we would like fuzzer to run.
+        // This is timeout on total run_time of testing program.
+        // Things to consider : what if program 
+        if(g_result.exec_time >= g_config->timeout){
+            
+            exit_protocol();
+            exit(0);
+        }
 
         g_itr = i++;
         // TODO size can change
@@ -733,7 +755,7 @@ fuzz_loop()
 #endif
 
         clock_t end = clock();
-        g_result.exec_time +=(double) (end - start) / CLOCKS_PER_SEC; 
+        g_result.exec_time += (double) (end - start) / CLOCKS_PER_SEC; 
 
         if( !g_config->oracle(exit_code, rand_str, len, out_buff, err_buff)) {
             g_result.bugs++;  
@@ -745,7 +767,6 @@ fuzz_loop()
         memset(err_buff, 0, g_config->tmp_buf_size);
 
         if(g_config->fuzz_mode == M_SRC){
-
             if(g_config->coverage_mode == M_LINE){  // TODO : FIX so that it gives feedback(seed)
                 // make gcov file
                 exec_gcov(g_config->src_wo_path);
@@ -770,8 +791,12 @@ fuzz_loop()
                     printf("add %s to seed\n", rand_str);
                     make_seed(rand_str, len, new_seed_file);
 
+                    seed_enqueue(seed_file);
                     seed_enqueue(new_seed_file);
                 } else {
+                    // TODO : If queue is full do not enqueue...?
+                    // Deal with the old and useless seeds 
+                    // If they are old, increase chaos level? 
                     seed_enqueue(seed_file);
                 }
                 free(p_result);
@@ -782,15 +807,12 @@ fuzz_loop()
                 fprintf(stderr, "Error in src_path. Src_path must have dot in it\n");
                 exit(1);
             }
+        } else if(g_config->fuzz_mode == M_BIN){
+            seed_enqueue(seed_file);
         }
         free(rand_str);
     }
 
     // Print result pretty
-    print_result();
-
-    free(g_result.b_result);
-    free(g_config->src_wo_path);
-    free(g_config->prog_argv[1]);
-    free(g_config->prog_argv);
+    exit_protocol();
 }

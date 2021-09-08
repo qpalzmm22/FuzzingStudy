@@ -51,3 +51,6 @@ Assumptions
 
 Q.
 1. Why not fuzz env. vars.
+
+- Useful Reference
+  - (Useful Mutations)[https://lcamtuf.blogspot.com/2014/08/binary-fuzzing-strategies-what-works.html]

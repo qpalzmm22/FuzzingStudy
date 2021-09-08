@@ -2,7 +2,7 @@
 
 #define MAX_MATCHES 10
 
-// #define DEBUG
+#define DEBUG
 
 p_url_attr_t
 parse_url(char * url)
@@ -12,7 +12,7 @@ parse_url(char * url)
     char * pos[] = { p_urls_attr->scheme, p_urls_attr->netloc, p_urls_attr->path, p_urls_attr->query, p_urls_attr->fragment };
 
     regex_t preg;
-    if(regcomp( &preg, "^(tcp)+:\\/\\/([^\\/?#]*)([^?#]*)\\?\?([^#]*)#?(.*)$", REG_EXTENDED) != 0){
+    if(regcomp( &preg, "^(http[s]?)+:\\/\\/([^\\/?#]*)([^?#]*)\\?\?([^#]*)#?(.*)$", REG_EXTENDED) != 0){
         fprintf(stderr,"Error in compiling regex");
         exit(1);
     }
@@ -53,10 +53,9 @@ is_valid_url(char * url)
 #ifdef DEBUG
 
 int
-main()
+main(int argc,char **argv)
 {
-    is_valid_url("http://wgooE\"0leV.gcAoZmbr``wBe:!^;sbhF?bu;dzIinoE%%");
-    is_valid_url("https://www.google.com/asda/asd/as?asd=asdasdasd#heer");
+    is_valid_url(argv[1]);
 }
 
 #endif /* DEBUG */

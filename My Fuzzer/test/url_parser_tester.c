@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
+// do mutation fuzzing until it's valid url.
 int
 main()
 {

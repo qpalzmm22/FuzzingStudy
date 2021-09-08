@@ -9,19 +9,19 @@
 #include "coverage_calculator.h"
 
 enum fz_mode{
-    /* 0 */ M_SRC,
-    /* 1 */ M_BIN,
+    /* 0 */ M_SRC, // Fuzz source file
+    /* 1 */ M_BIN, // Fuzz binary file (w/o coverage)
 };
 
 enum ex_mode{
-    /* 0 */ M_STDIN,
-    /* 1 */ M_ARG,
-    /* 2 */ M_FILE
+    /* 0 */ M_STDIN, // Obtain fuzzed input from STDIN 
+    /* 1 */ M_ARG, // Obtain fuzzed input from argument
+    /* 2 */ M_FILE // Obtain fuzzed input from file
 };
 
 enum cov_mode{
-    /* 0 */ M_LINE,
-    /* 1 */ M_BRANCH,
+    /* 0 */ M_LINE, // line coverage 
+    /* 1 */ M_BRANCH, // branch coverage
 };
 
 enum rsg_type{
@@ -41,7 +41,7 @@ typedef struct _queue{
     int size ;
     int front ;
     int rear ;
-    char queue[256][MAX_SEED_FILES] ;
+    char queue[MAX_SEED_FILES][256] ;
 }queue_t;
 
 

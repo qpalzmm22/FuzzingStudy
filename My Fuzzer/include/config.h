@@ -17,8 +17,8 @@
 
 
 
-#define EXEC_MODE M_ARG
-#define FUZZ_MODE M_SRC
+#define EXEC_MODE M_FILE
+#define FUZZ_MODE M_BIN
 #define RSG_TYPE T_MUT
 
 
@@ -31,7 +31,7 @@
 #define CH_START 32
 #define CH_RANGE 32
 
-#define MAX_MUTATION 10
+#define MAX_MUTATION 1
 
 
 // ============= PATH CONFIG ^ ============= // 
@@ -44,15 +44,15 @@
 
 // If DEFAULT_PATH is not defined, DATA_PATH should be defined
 // #define DEFAULT_PATHa
-#define PROG_PATH "/usr/bin/cat"
-#define SRC_PATH "target/cgi_decode_ex.c"
+#define PROG_PATH "/home/qpalzmm22/FuzzingStudy/My Fuzzer/target/bc-1.07.1/bc/bc"
+#define SRC_PATH "target/URL_parser/http_program.c"
 #define DATA_PATH "./data"
 #define SEED_PATH "./seed_corpus"
 
 // ============= PATH CONFIG $ ============= //
 
 #define MAX_TRIALS 1000
-// #define TIMEOUT 3
+#define TIMEOUT 100
 
 // #define HANG_TIMEOUT 100
 
