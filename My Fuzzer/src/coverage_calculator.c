@@ -1,4 +1,5 @@
 #include "../include/coverage_calculator.h"
+#include "../include/gcov_creater.h"
 
 // #define DEBUG
 #define MAX_COVERAGE_LINE 4096
@@ -181,6 +182,8 @@ extract_program(char *filepath)
     return filename;
 }
 
+// Iteratre from end of the path. If `.` is found gets rid of it and 
+// Is it needed?
 int
 remove_gcda(char *filepath)
 {   
@@ -211,9 +214,9 @@ remove_gcda(char *filepath)
 
 
 void 
-execute_calc(char* filepath, char ** args, int argc, int * coverage)
+execute_calc(char* filepath, char* gcpath, char ** args, int argc, int * coverage)
 {
-    gcov_creater(filepath, argc, args);
+    gcov_creater(filepath, gcpath, argc, args);
 
     char * filename = extract_program(filepath);
     read_gcov_coverage(filename, coverage);
@@ -225,9 +228,9 @@ execute_calc(char* filepath, char ** args, int argc, int * coverage)
 }
 
 void
-execute_branch_cov(char* filepath, char ** args, int argc, b_result_t *p_result_t)
+execute_branch_cov(char* filepath, char* gcpath,  char ** args, int argc, b_result_t *p_result_t)
 {
-    gcov_branch_creater(filepath, argc, args);
+    gcov_branch_creater(filepath, gcpath, argc, args);
 
     char * filename = extract_program(filepath);
     int num_line_w_branches = read_gcov_coverage_with_bc_option(filename, p_result_t);

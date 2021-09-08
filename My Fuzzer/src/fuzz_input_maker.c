@@ -5,7 +5,7 @@
 
 */
 
-#define DEBUG
+// #define DEBUG
 
 static int8_t interesting_8[] = { KNOWNINT_8 };
 static int16_t interesting_16[] = { KNOWNINT_8, KNOWNINT_16 };

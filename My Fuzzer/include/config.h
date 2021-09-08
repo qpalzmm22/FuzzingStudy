@@ -15,10 +15,8 @@
 
 //#define DEFAULT_FUZZER
 
-
-
 #define EXEC_MODE M_FILE
-#define FUZZ_MODE M_BIN
+#define FUZZ_MODE M_COMPILED_BIN
 #define RSG_TYPE T_MUT
 
 
@@ -31,7 +29,7 @@
 #define CH_START 32
 #define CH_RANGE 32
 
-#define MAX_MUTATION 1
+#define MAX_MUTATION 10
 
 
 // ============= PATH CONFIG ^ ============= // 
@@ -48,6 +46,8 @@
 #define SRC_PATH "target/URL_parser/http_program.c"
 #define DATA_PATH "./data"
 #define SEED_PATH "./seed_corpus"
+#define GC_PATH ""
+
 
 // ============= PATH CONFIG $ ============= //
 

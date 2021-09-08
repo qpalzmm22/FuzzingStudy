@@ -9,8 +9,11 @@ test_p_troff: src/fuzzer.c src/fuzz_input_maker.c src/gcov_creater.c src/coverag
 fuzzer_w_coverage : src/fuzzer.c src/fuzz_input_maker.c src/gcov_creater.c src/coverage_calculator.c test/cgi_decoder_tester.c  
 	gcc -o bin/fuzzer_w_coverage src/fuzzer.c src/fuzz_input_maker.c src/gcov_creater.c src/coverage_calculator.c test/cgi_decoder_tester.c
 
-fuzz_input_maker : src/fuzz_input_maker.c
+test_fuzz_input_maker : src/fuzz_input_maker.c
 	gcc -o bin/fuzz_input_maker src/fuzz_input_maker.c
+
+test_gcov_creater : src/gcov_creater.c
+	gcc -o bin/gcov_creater src/gcov_creater.c
 
 fuzz_url_parser :  src/fuzzer.c src/fuzz_input_maker.c src/gcov_creater.c src/coverage_calculator.c test/url_fuzzer_tester.c
 	gcc -o bin/fuzz_url_parser src/fuzzer.c src/fuzz_input_maker.c src/gcov_creater.c src/coverage_calculator.c test/url_fuzzer_tester.c

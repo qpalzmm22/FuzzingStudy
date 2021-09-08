@@ -518,8 +518,8 @@ init_fuzzer(pConfig_t config)
 
     // ---------------------- Coverage -------------------------
 
-    if(FUZZ_MODE != M_SRC && FUZZ_MODE != M_BIN){
-        fprintf(stderr, "FUZZ_MODE must be set. 1 for src mode, 2 for bin mode\n");
+    if(FUZZ_MODE != M_SRC && FUZZ_MODE != M_BIN && FUZZ_MODE != M_COMPILED_BIN){
+        fprintf(stderr, "FUZZ_MODE must be set. 0 for src mode, 1 for bin mode, 2 for precompiled mode(with --coverage)\n");
         exit(1);
     }
     g_config->fuzz_mode = FUZZ_MODE; 
@@ -557,16 +557,36 @@ init_fuzzer(pConfig_t config)
         }
         g_config->coverage_mode = COV_MODE;
 
-        exec_gcc_coverage(g_config->src_path);
-
-        char *p_bin_path;
-        if((p_bin_path = realpath("a.out", 0x0)) == 0x0){
-            perror("Error in real_path");
+        char * tmp = get_bin_path(g_config->src_path);
+        if(tmp == 0x0){
+            fprintf(stderr, "Error in getting bin path of the source code");
             exit(1);
         }
-        strcpy(g_config->prog_path, p_bin_path);
-        free(p_bin_path);
-    }
+        strcpy(g_config->prog_path, tmp) ;
+        free(tmp);
+
+        exec_gcc_coverage(g_config->src_path, g_config->prog_path);
+
+    } else if(g_config->fuzz_mode == M_COMPILED_BIN){
+        if( realpath(PROG_PATH, real_path ) == NULL) {
+            perror("Error on finding program") ; 
+            exit(1);
+        } else if( access( real_path, X_OK ) == 0 ) {
+            strcpy(g_config->prog_path, real_path) ;
+        } else {
+            perror("Can't access the program") ;
+            exit(1);
+        }
+
+        char * src_wo_path = extract_program(g_config->src_path);
+        g_config->src_wo_path = src_wo_path;
+
+        if(COV_MODE != M_LINE && COV_MODE != M_BRANCH){
+            fprintf(stderr, "COV_MODE must be set. 0 for line mode, 1 for branch mode\n");
+            exit(1);
+        }
+        g_config->coverage_mode = COV_MODE;
+    } 
 
     // --------------------- Initialize g_results----------------
 
@@ -618,7 +638,7 @@ print_result()
 
     printf("\n\n");
     printf("===================================================== FUZZING RESULT ================================================\n");
-    if(g_config->fuzz_mode == M_BIN){
+    if(g_config->fuzz_mode == M_BIN || g_config->fuzz_mode == M_COMPILED_BIN){
         printf("=                  Program Path : %70s            =\n", g_config->prog_path);
     } else if(g_config->fuzz_mode == M_SRC){
         printf("=                   Source Path : %70s            =\n", g_config->src_path);
@@ -635,7 +655,7 @@ print_result()
     printf("=            Bugs per testcases : %70.3f            =\n", ((double)g_result.bugs) / g_result.tot_test_cases);
     printf("=      Bugs per number of chars : %70.5f            =\n", ((double)g_result.bugs) / g_result.char_n);
     
-    if(g_config->fuzz_mode == M_SRC){
+    if(g_config->fuzz_mode == M_SRC || g_config->fuzz_mode == M_COMPILED_BIN){
         printf("= ---------------------------------------------------- COVERAGE --------------------------------------------------- =\n");
         if(g_config->coverage_mode == M_LINE){
             calc_covered_lines();
@@ -703,7 +723,6 @@ fuzz_loop()
         // Termination Condition
         // This is not exactly how much time we would like fuzzer to run.
         // This is timeout on total run_time of testing program.
-        // Things to consider : what if program 
         if(g_result.exec_time >= g_config->timeout){
             
             exit_protocol();
@@ -766,7 +785,7 @@ fuzz_loop()
         memset(out_buff, 0, g_config->tmp_buf_size);
         memset(err_buff, 0, g_config->tmp_buf_size);
 
-        if(g_config->fuzz_mode == M_SRC){
+        if(g_config->fuzz_mode == M_SRC || g_config->fuzz_mode == M_COMPILED_BIN){
             if(g_config->coverage_mode == M_LINE){  // TODO : FIX so that it gives feedback(seed)
                 // make gcov file
                 exec_gcov(g_config->src_wo_path);

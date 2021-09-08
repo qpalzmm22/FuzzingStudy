@@ -9,8 +9,9 @@
 #include "coverage_calculator.h"
 
 enum fz_mode{
-    /* 0 */ M_SRC, // Fuzz source file
-    /* 1 */ M_BIN, // Fuzz binary file (w/o coverage)
+    /* 0 */ M_SRC, // Fuzzing source file
+    /* 1 */ M_BIN, // Fuzzing binary file (w/o coverage)
+    /* 2 */ M_COMPILED_BIN, // Fuzzing binary file that is compiled with `--coverage` option
 };
 
 enum ex_mode{
@@ -54,15 +55,21 @@ typedef struct _config{
     // Seed schedular
     queue_t seed_queue;
  
-    // fuzz mode M :=> input : source path
+    // fuzz mode 0 :=> input : source path
     enum fz_mode fuzz_mode ; // 0 = Source code, 1 = Executable binary file
     char src_path[PATH_MAX] ;
     char * src_wo_path ;
 
-    // fuzz mode 2 :=> input : binary path
+    // fuzz mode 1 :=> input : binary path
     char prog_path[PATH_MAX] ;
     char** prog_argv ;
     char prog_argc;
+
+    // fuzz mode 2 : => precompiled bin;
+    // char prog_path[PATH_MAX] ;
+    // char** prog_argv ;
+    // char prog_argc;
+
 
     // input, output, error data path
     char data_path[PATH_MAX] ;
