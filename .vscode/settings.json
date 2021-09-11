@@ -16,7 +16,8 @@
         "fuzz_input_maker.h": "c",
         "coverage_calculator.h": "c",
         "ctype.h": "c",
-        "gcov_creater.h": "c"
+        "gcov_creater.h": "c",
+        "http_program.h": "c"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }
