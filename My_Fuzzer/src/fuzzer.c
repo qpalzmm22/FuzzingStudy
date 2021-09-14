@@ -24,6 +24,7 @@ create_tmp_dirs()
 	char template[64] = "tmp_XXXXXX";
 
 	char * dir_name = (char *)malloc( 64 * sizeof(char));
+    assert(dir_name);
 	
 	strcpy(dir_name, mkdtemp(template));	
 
@@ -368,7 +369,7 @@ make_argv()
     argv[0] = g_config->prog_path;
     int argc = 1;
     
-    char * args = (char*)malloc((strlen(PROG_ARGS) + 1) * sizeof(char));
+    char * args = (char*) malloc((strlen(PROG_ARGS) + 1) * sizeof(char));
     assert(args);
     
     // TODO : Better function...?
@@ -548,7 +549,7 @@ init_fuzzer(pConfig_t config)
             perror("Can't access the source code") ;
             exit(1);
         }
-        char * src_wo_path = extract_program(g_config->src_path);
+        char * src_wo_path = extract_filename(g_config->src_path);
         g_config->src_wo_path = src_wo_path;
 
         if(COV_MODE != M_LINE && COV_MODE != M_BRANCH){
@@ -598,7 +599,8 @@ init_fuzzer(pConfig_t config)
             exit(1);
         }
 
-        char * src_wo_path = extract_program(g_config->src_path);
+        // TODO : Change to array
+        char * src_wo_path = extract_filename(g_config->src_path);
         g_config->src_wo_path = src_wo_path;
 
         if(COV_MODE != M_LINE && COV_MODE != M_BRANCH){
@@ -619,6 +621,7 @@ init_fuzzer(pConfig_t config)
     g_result.tot_line_covered = 0;
     memset(g_result.cov_set, 0, MAX_COVERAGE_LINE);
     g_result.b_result = (b_result_t *) calloc(MAX_COVERAGE_LINE, sizeof(b_result_t));
+    assert(g_result.b_result);
 
     g_seed_name_itr = 0;
 }
@@ -688,7 +691,7 @@ print_result()
         } else if(g_config->coverage_mode == M_BRANCH){
             for(int i = 0; i < g_result.tot_line_covered; i++){
                 for(int j = 0; j < g_result.b_result[i].num_branch; j++ ){
-                    printf("=           Branch Line [ %2d ] ::   :: Branch [ %2d ] => %40d    %3.f %%           =\n", g_result.b_result[i].line_num, j, g_result.b_result[i].runs[j], (double )g_result.b_result[i].runs[j] / g_result.tot_test_cases * 100);
+                    printf("=   Branch Line [ %10d ] ::   :: Branch [ %2d ] => %40d    %3.f %%           =\n", g_result.b_result[i].line_num, j, g_result.b_result[i].runs[j], (double )g_result.b_result[i].runs[j] / g_result.tot_test_cases * 100);
                 }
                 printf("=                                                                                                                   =\n");
             } 
@@ -761,13 +764,15 @@ fuzz_loop()
         if(g_config->rnd_str_gen_type == T_RSG){
 
             rand_str = (char *) malloc(sizeof(char) * (g_config->in_configs.max_len + 1));
+            assert(rand_str);
 
             len = create_rand_str(g_config->in_configs, rand_str);
             
 
         } else if(g_config->rnd_str_gen_type == T_MUT){
 
-            rand_str = (char *) malloc(sizeof(char) * (g_config->in_configs.max_len + 1 + g_config->in_configs.max_mutation));
+            rand_str = (char *) malloc(sizeof(char) * (g_config->in_configs.max_len + 1 + g_config->in_configs.max_mutation * 4));
+            assert(rand_str);
             
             seed_file = seed_dequeue();
             len = read_seed(rand_str, seed_file);
@@ -829,8 +834,9 @@ fuzz_loop()
                 // Something is added to branch coverage
                 if(union_branch_cov(p_result) > 0){
                     char new_seed_file[256];
+                    
                     // make seed_file
-                    printf("add %s to seed\n", rand_str);
+                    printf(" *** add %s to seed *** \n", rand_str);
                     make_seed(rand_str, len, new_seed_file);
 
                     seed_enqueue(seed_file);

@@ -81,8 +81,8 @@ read_gcov_coverage(char * c_file, int * coverage)
         exit(1);
     }
     int tot_cov = 0;
-    char line[4096];
-    while(fgets(line, 4096, fp) != 0x0){
+    char line[MAX_COVERAGE_LINE];
+    while(fgets(line, MAX_COVERAGE_LINE, fp) != 0x0){
         char * covered = trim( strtok( line, ":" ));
         int line_number = atoi( trim( strtok( 0x0, ":" )));
 
@@ -111,13 +111,13 @@ read_gcov_coverage_with_bc_option(char * c_file, b_result_t * p_result_t)
     }
     int branch_flag = 0;
     int branch_itr = 0;
-    char line[4096];
+    char line[MAX_COVERAGE_LINE];
     int line_number = 0;
     int tot_branches = 0;
     p_result_t[branch_itr].num_branch = 0;
  
 
-    while(fgets(line, 4096, fp) != 0x0){
+    while(fgets(line, MAX_COVERAGE_LINE, fp) != 0x0){
         if(strncmp(line, "branch", 6) == 0){
 
             branch_flag = 1;
@@ -161,8 +161,9 @@ read_gcov_coverage_with_bc_option(char * c_file, b_result_t * p_result_t)
 }
 
 // Malloced. Need to be freed.
+// gets filename from path.
 char *
-extract_program(char *filepath)
+extract_filename(char *filepath)
 {
     char * filename = 0x0;
     int len = strlen(filepath);
@@ -179,6 +180,38 @@ extract_program(char *filepath)
     }
 
     return filename;
+}
+
+// Malloced
+// From gc_path, get all the files 
+int
+extract_filenames(char *src_dirpath, char ** src_array)
+{
+
+    DIR * dir_ptr = 0x0;
+    struct dirent * file = 0x0;
+
+    if((dir_ptr = opendir(src_dirpath)) == 0x0){
+        perror("Error in extract_filename");
+        exit(1);
+    }
+
+    int i = 0;
+    while((file = readdir(dir_ptr)) != 0x0){
+        char * dot_c_ptr;
+        // if file name contains .c 
+        if((dot_c_ptr = strstr(file->d_name, ".c")) != 0x0){
+            // and if file name contains it at the end of file, add it to the cov list
+            if(file->d_name + (strlen(file->d_name) - 2) == dot_c_ptr){
+                src_array[i++] = file->d_name;
+            }
+        }
+    }
+    // DEBUG
+    printf("%s\n", src_array[0]) ;
+    
+    closedir(dir_ptr);
+    return i;
 }
 
 // Iteratre from end of the path. If `.` is found gets rid of it and 
@@ -217,7 +250,7 @@ execute_line_cov(char* filepath, char* gcpath, char ** args, int argc, int * cov
 {
     gcov_creater(filepath, gcpath, argc, args);
 
-    char * filename = extract_program(filepath);
+    char * filename = extract_filename(filepath);
     read_gcov_coverage(filename, coverage);
     free(filename);
 
@@ -231,7 +264,7 @@ execute_branch_cov(char* filepath, char* gcpath,  char ** args, int argc, b_resu
 {
     gcov_branch_creater(filepath, gcpath, argc, args);
 
-    char * filename = extract_program(filepath);
+    char * filename = extract_filename(filepath);
     int num_line_w_branches = read_gcov_coverage_with_bc_option(filename, p_result_t);
     free(filename);
     
@@ -250,6 +283,7 @@ main()
     char filepath[] = "target/cgi_decode_ex.c";
     char *args[] = {"Send+mail+to+me+fuzzingbook.org"}; 
     char *gcpath = "./";
+    char * src_dirpath = "target";
     int argc = 2;
     b_result_t b_coverages[MAX_COVERAGE_LINE] = {};
     execute_branch_cov(filepath, gcpath, args, argc, b_coverages);

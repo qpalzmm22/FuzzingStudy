@@ -49,8 +49,9 @@ Assumptions
 - In, Out files are in same path.
 - If compiled mode, we assume that all the gcno, gcda files are in same directory
 - If return code is not 0, we assume that it's a bug
-- We assume that user won't put weird input on path. (Doesn't do much of input verification) <= needs to be fixe
-- 
+- We assume that user won't put weird input on path. (Doesn't do much of input verification) <= needs to be fix
+  
+- For testing bc, copy all the source files to fuzzing dir.
 
 
 Q.

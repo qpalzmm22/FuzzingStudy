@@ -32,4 +32,4 @@ url_parser_tester : src/fuzz_input_maker.c target/URL_parser/http_program.c test
 
 
 clean : 
-	rm -r bin/* tmp* a.out *.gcda *.gcno *.gcov seed_corpus/seed_*
+	rm -r bin/* tmp* ./*.c a.out *.gcda *.gcno *.gcov seed_corpus/seed_*

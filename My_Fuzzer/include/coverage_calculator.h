@@ -4,6 +4,7 @@
 #define MAX_BRANCH 32
 
 typedef struct _branch_result{
+    char file_name[256];
     int line_num;
     int num_branch;
     int runs[MAX_BRANCH];
@@ -17,6 +18,7 @@ typedef struct _branch_result{
 #include <linux/limits.h>
 #include <assert.h>
 #include <regex.h>
+#include <dirent.h>
 
 #include "../include/gcov_creater.h"
 
@@ -39,7 +41,7 @@ int
 remove_gcda(char *filepath);
 
 char *
-extract_program(char *filepath);
+extract_filename(char *filepath);
 
 void 
 execute_line_cov(char* filepath, char* gcpath, char ** args, int argc, int * coverage);

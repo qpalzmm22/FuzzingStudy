@@ -5,6 +5,8 @@
 
 #define MAX_SEED_FILES 1024
 
+#define MAX_C_FILES 100
+
 #include <linux/limits.h>
 #include "coverage_calculator.h"
 
@@ -72,6 +74,9 @@ typedef struct _config{
 
     // gcda, gcno path
     char gc_path[PATH_MAX] ;
+    
+    // get c_files number from init 
+    // char c_files[MAX_C_FILES][PATH_MAX];
 
     // input, output, error data path
     char data_path[PATH_MAX] ;

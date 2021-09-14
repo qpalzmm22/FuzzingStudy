@@ -49,16 +49,19 @@ int
 create_rand_str(in_config_t in_configs, char * dest);
 
 int
-delete_byte(char *src, int len, char *dest);
+delete_byte(char *src, int len, char *dest, int bytes);
 
 int
-insert_byte(char *src, int len, char *dest);
+insert_byte(char *src, int len, char *dest, int bytes);
 
 int
-flip_bit(char *src, int len, char *dest);
+flip_bit(char *src, int len, char *dest, int bytes);
 
 int
-run_mut(char * src, int len, char *dest);
+run_mut(char * src, int len, char *dest, int bytes);
+
+int
+simp_arith(char * src, int len, char *dest, int bytes);
 
 int
 create_mut_str(int itr, char *src, int len, char *dest);

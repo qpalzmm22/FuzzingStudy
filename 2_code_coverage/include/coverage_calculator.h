@@ -39,7 +39,7 @@ int
 remove_gcda(char *filepath);
 
 char *
-extract_program(char *filepath);
+extract_filename(char *filepath);
 
 void 
 execute_calc(char* filepath, char ** args, int argc, int * coverage);
