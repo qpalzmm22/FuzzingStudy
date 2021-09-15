@@ -13,6 +13,11 @@
         "config.h": "c",
         "string.h": "c",
         "stdlib.h": "c",
-        "fuzz_input_maker.h": "c"
-    }
+        "fuzz_input_maker.h": "c",
+        "coverage_calculator.h": "c",
+        "ctype.h": "c",
+        "gcov_creater.h": "c",
+        "http_program.h": "c"
+    },
+    "C_Cpp.errorSquiggles": "Disabled"
 }

@@ -8,9 +8,10 @@
 #include <sys/wait.h>
 #include <linux/limits.h>
 
-void exec_gcc_coverage();
+void exec_gcc_coverage(char *filepath);
 void exec_bin(char **argv);
-void exec_gcov();
+void exec_gcov(char *filepath);
 void gcov_creater(char * filename, int argc, char **args);
+void gcov_branch_creater(char * filename, int argc, char **args);
 
 #endif // !HAVE_GCOV_CREATER_H 
