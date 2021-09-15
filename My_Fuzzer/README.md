@@ -2,7 +2,7 @@
 
 This is serious Fuzzer.
 
-I created abstract fuzzer and fuzzer driver that runs it. Fuzzer driver, which is only confined to `cat` command in this directory, gives config. info. to fuzzer and runs the fuzzer. The fuzzer takes the arguments, runs the program and returns the result.
+I created abstract fuzzer and fuzzer driver that runs it. Fuzzer driver is specific to program and must be configureed specific to the program. You must create `Oracle` specific to the program and configure the fuzzer setting and run the fuzzer on the driver. The fuzzer takes the arguments, runs the program and returns the result.
 
 ## HOW TO USE
 
