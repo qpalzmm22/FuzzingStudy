@@ -5,7 +5,6 @@
 
 #define MAX_SEED_FILES 1024
 
-#define MAX_C_FILES 100
 
 #include <linux/limits.h>
 #include "coverage_calculator.h"

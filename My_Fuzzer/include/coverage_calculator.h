@@ -2,6 +2,7 @@
 #define _HAVE_COVERAGE_CALCULATOR_H_
 
 #define MAX_BRANCH 32
+#define MAX_SRC_FILES 100
 
 typedef struct _branch_result{
     char file_name[256];

@@ -86,8 +86,6 @@ exec_gcov_with_bc_option(char * filepath, char * gcpath)
     }
 }
 
-
-
 void
 gcov_creater(char * filename, char * gcpath, int argc, char **args)
 {

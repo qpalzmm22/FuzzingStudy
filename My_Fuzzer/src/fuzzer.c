@@ -742,7 +742,6 @@ fuzz_loop()
     
     int i = 0;
     while(1){
-
         // Termination Condition
         // This is not exactly how much time we would like fuzzer to run.
         // This is timeout on total run_time of testing program.
@@ -767,7 +766,6 @@ fuzz_loop()
             assert(rand_str);
 
             len = create_rand_str(g_config->in_configs, rand_str);
-            
 
         } else if(g_config->rnd_str_gen_type == T_MUT){
 

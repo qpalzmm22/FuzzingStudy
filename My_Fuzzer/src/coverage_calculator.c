@@ -1,6 +1,6 @@
 #include "../include/coverage_calculator.h"
 
-// #define DEBUG
+#define DEBUG
 #define MAX_COVERAGE_LINE 4096
 
 char * 
@@ -174,7 +174,7 @@ extract_filename(char *filepath)
             return filename;
         }
     }
-    if(filename == 0x0){ // filepath = relative path
+    if(filename == 0x0){ // filepath = relative path, doesn't contain '/' in name
         filename = (char *) malloc(sizeof(char) * (len + 1));
         strcpy(filename, filepath);
     }
@@ -185,9 +185,8 @@ extract_filename(char *filepath)
 // Malloced
 // From gc_path, get all the files 
 int
-extract_filenames(char *src_dirpath, char ** src_array)
+get_filenames(char *src_dirpath, char ** src_array)
 {
-
     DIR * dir_ptr = 0x0;
     struct dirent * file = 0x0;
 
@@ -195,7 +194,6 @@ extract_filenames(char *src_dirpath, char ** src_array)
         perror("Error in extract_filename");
         exit(1);
     }
-
     int i = 0;
     while((file = readdir(dir_ptr)) != 0x0){
         char * dot_c_ptr;
@@ -203,15 +201,49 @@ extract_filenames(char *src_dirpath, char ** src_array)
         if((dot_c_ptr = strstr(file->d_name, ".c")) != 0x0){
             // and if file name contains it at the end of file, add it to the cov list
             if(file->d_name + (strlen(file->d_name) - 2) == dot_c_ptr){
-                src_array[i++] = file->d_name;
+                // TODO : How to make it secure?
+                src_array[i] = file->d_name;
+                //strncpy(src_array[i], file->d_name, 256);
+                i++;
             }
         }
     }
-    // DEBUG
-    printf("%s\n", src_array[0]) ;
     
     closedir(dir_ptr);
     return i;
+}
+
+void
+copy_b_result(b_result_t * dest, b_result_t * src){
+    strncpy(dest->file_name, src->file_name, 256);
+    dest->line_num = src->line_num;
+    dest->num_branch = src->num_branch;
+    //dest-> = src->file_name;
+}
+
+int
+mult_src_cov(char * src_dir_path, b_result_t ** pp_result_t){
+    char * src_array[MAX_SRC_FILES]; 
+    printf("here") ;
+    
+    int num_files = get_filenames(src_dir_path, src_array);
+    if(num_files > MAX_SRC_FILES){
+        fprintf(stderr, "number of source files are greater than MAX_SRC_FILES");
+        exit(1);
+    }
+    
+    for(int i = 0 ; i < num_files ; i++){
+        char * filename = src_array[i]; //extract_filename(src_array[i]);
+        int num_line_w_branches = read_gcov_coverage_with_bc_option(filename, pp_result_t[i]);
+        free(filename);    
+    }
+
+
+#ifdef DEBUG
+    for(int i = 0; i < num_files; i++){
+        printf("%s\n",src_array[i]);
+    }
+#endif // DEBUG
 }
 
 // Iteratre from end of the path. If `.` is found gets rid of it and 
@@ -259,6 +291,7 @@ execute_line_cov(char* filepath, char* gcpath, char ** args, int argc, int * cov
 #endif // DEBUG
 }
 
+
 void
 execute_branch_cov(char* filepath, char* gcpath,  char ** args, int argc, b_result_t *p_result_t)
 {
@@ -278,15 +311,23 @@ execute_branch_cov(char* filepath, char* gcpath,  char ** args, int argc, b_resu
 int 
 main()
 {
-    //execute_line_cov();
+    //execte_line_cov();
 
-    char filepath[] = "target/cgi_decode_ex.c";
-    char *args[] = {"Send+mail+to+me+fuzzingbook.org"}; 
-    char *gcpath = "./";
-    char * src_dirpath = "target";
-    int argc = 2;
-    b_result_t b_coverages[MAX_COVERAGE_LINE] = {};
-    execute_branch_cov(filepath, gcpath, args, argc, b_coverages);
+    // char filepath[] = "target/cgi_decode_ex.c";
+    // char *args[] = {"Send+mail+to+me+fuzzingbook.org"}; 
+    // char *gcpath = "./";
+    // char * src_dirpath = "target";
+    // int argc = 2;
+    // b_result_t b_coverages[MAX_COVERAGE_LINE] = {};
+    // execute_branch_cov(filepath, gcpath, args, argc, b_coverages);
+ 
+    // b_result_t ** b_coverages = (b_result_t **)malloc(sizeof(b_result_t*) * MAX_SRC_FILES);
+    // for(int i = 0 ; i < MAX_SRC_FILES ; i++){
+    //     b_coverages[i] = (b_result_t *) malloc(sizeof(b_result_t) * MAX_COVERAGE_LINE);
+    // }
+    b_result_t b_coverages[MAX_SRC_FILES][MAX_COVERAGE_LINE];
+    char * src_dir_path = "target";
+    mult_src_cov(src_dir_path, (b_result_t **)b_coverages);
 
     return 0;
 }
