@@ -16,6 +16,8 @@ exec_bin(char **argv, char * prog_path);
 void
 exec_gcov(char *filepath, char * gcpath);
 void
+exec_and_gcov(char * filename, char * gcpath, char *binpath, int argc, char **args);
+void
 gcov_creater(char * filename, char * gcpath, int argc, char **args);
 void
 gcov_branch_creater(char * filename, char * gcpath, int argc, char **args);

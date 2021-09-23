@@ -39,11 +39,10 @@
 // If DEFAULT_PATH is not defined, DATA_PATH should be defined
 // #define DEFAULT_PATHa
 #define PROG_PATH "/home/qpalzmm22/FuzzingStudy/My_Fuzzer/target/bc-1.07.1/bc/bc"
-#define SRC_PATH "/home/qpalzmm22/FuzzingStudy/My_Fuzzer/target/bc-1.07.1/bc/main.c"
 #define DATA_PATH "./data"
 #define SEED_PATH "./seed_corpus"
-#define GC_PATH "/home/qpalzmm22/FuzzingStudy/My_Fuzzer/target/bc-1.07.1/bc"
-
+#define SRC_DIR_PATH "/home/qpalzmm22/FuzzingStudy/My_Fuzzer/target/bc-1.07.1/bc"
+// #define SRC_PATH {"/home/qpalzmm22/FuzzingStudy/My_Fuzzer/target/bc-1.07.1/bc/main.c"}
 
 // ============= PATH CONFIG $ ============= //
 
@@ -69,6 +68,11 @@
 
 // ============= COVERAGE CONFIG $ ============= //
 
+// ============= VIEW CONFIG ^ ============= //
+
+#define PRINT_BRANCH 0 // 1 for true 0, for false
+
+// ============= VIEW CONFIG $ ============= //
 
 
 /* -------------------------------------------------------------------------------------
@@ -113,7 +117,7 @@
 #endif /* ! PROG_PATH */
 
 #ifndef SRC_PATH 
-#define SRC_PATH "./helloWorld.c"
+#define SRC_PATH 0x0
 #endif /* ! SRC_PATH */
 
 #ifndef SEED_PATH 
@@ -170,5 +174,9 @@
 #ifndef ORACLE 
 #define ORACLE default_oracle
 #endif /* ! ORACLE */
+
+#ifndef PRINT_BRANCH 
+#define PRINT_BRANCH 1
+#endif /* ! PRINT_BRANCH */
 
 #endif /* _HAVE_TYPES_H_ */

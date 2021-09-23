@@ -1,7 +1,15 @@
 #include "../include/coverage_calculator.h"
 
-#define DEBUG
-#define MAX_COVERAGE_LINE 4096
+// #define DEBUG
+
+void
+free_N(void ** pp_alloc, int num)
+{
+    for(int i = 0; i < num; i++){
+        free(pp_alloc[i]);
+    }
+    free(pp_alloc);
+}
 
 char * 
 trim(char* str)
@@ -38,13 +46,18 @@ print_coverage(int * coverage)
 }
 
 void
-print_branch_coverage(b_result_t * p_result_t, int num_line_w_branches)
+print_branch_coverage(cov_info_t ** pp_cov_info, int num_files)
 {
     printf("Covered branches :\n");
-    for(int i = 0; i < num_line_w_branches; i++){
-        printf("%d : \n", p_result_t[i].line_num);
-        for(int j = 0; j < p_result_t[i].num_branch; j++ ){
-            printf("[%d] => %d\n", j, p_result_t[i].runs[j]);
+    for(int i = 0 ; i < num_files ; i++){
+        printf("File : %s\n", pp_cov_info[i]->file_name);
+
+        for(int j = 0 ; j < pp_cov_info[i]->tot_branches; j++ ){
+            printf("%d : \n", pp_cov_info[i]->b_infos[j].line_num);
+            
+            for(int k = 0 ; k < pp_cov_info[i]->b_infos[j].num_branch; k++){
+                printf("[%d] => %d\n", k, pp_cov_info[i]->b_infos[j].runs[k]);
+            }
         }
     }
     printf("\n");
@@ -66,55 +79,26 @@ get_branch_coverage(int* coverage, int * branch_coverage)
     return tot_cov;
 }
 
-
-// Returns the size of coverage. Indicates the end of array by inserting -1 at the end.
+// Returns -1 when there is no file named `c_file.gcov` which is very possible.
 int 
-read_gcov_coverage(char * c_file, int * coverage)
+read_gcov_coverage_with_bc_option(char * c_file, cov_info_t * pcov_info)
 {
+    b_info_t * pb_info = pcov_info->b_infos;
     char target_file[PATH_MAX];
     
     sprintf(target_file, "%s.gcov", c_file);
 
     FILE * fp;
     if((fp = fopen(target_file, "r")) == NULL){
-        perror("Error in open .gcov file");
-        exit(1);
-    }
-    int tot_cov = 0;
-    char line[MAX_COVERAGE_LINE];
-    while(fgets(line, MAX_COVERAGE_LINE, fp) != 0x0){
-        char * covered = trim( strtok( line, ":" ));
-        int line_number = atoi( trim( strtok( 0x0, ":" )));
-
-        if(*covered == '-' || *covered == '#'){
-            continue;
-        }
-        coverage[line_number] = 1;
-        tot_cov++;
-    }
-    
-    fclose(fp);
-    return tot_cov;    
-}
-
-int 
-read_gcov_coverage_with_bc_option(char * c_file, b_result_t * p_result_t)
-{
-    char target_file[PATH_MAX];
-    
-    sprintf(target_file, "%s.gcov", c_file);
-
-    FILE * fp;
-    if((fp = fopen(target_file, "r")) == NULL){
-        perror("Error in open .gcov file");
-        exit(1);
+        return -1;
     }
     int branch_flag = 0;
     int branch_itr = 0;
     char line[MAX_COVERAGE_LINE];
     int line_number = 0;
     int tot_branches = 0;
-    p_result_t[branch_itr].num_branch = 0;
+    int tot_branches_covered = 0;
+    pb_info[branch_itr].num_branch = 0;
  
 
     while(fgets(line, MAX_COVERAGE_LINE, fp) != 0x0){
@@ -122,7 +106,7 @@ read_gcov_coverage_with_bc_option(char * c_file, b_result_t * p_result_t)
 
             branch_flag = 1;
 
-            p_result_t[branch_itr].line_num = line_number;
+            pb_info[branch_itr].line_num = line_number;
 
             char* tokens[4];
             tokens[0] = strtok(line, " ");
@@ -132,32 +116,34 @@ read_gcov_coverage_with_bc_option(char * c_file, b_result_t * p_result_t)
             }
 
             if(strncmp(tokens[2], "never", 5) == 0 ){
-                p_result_t[branch_itr].runs[p_result_t[branch_itr].num_branch] = 0;
-            } else {
-                p_result_t[branch_itr].runs[p_result_t[branch_itr].num_branch] = (atoi(tokens[3]) > 0 ? 1 : 0);
+                pb_info[branch_itr].runs[pb_info[branch_itr].num_branch] = 0;
+            } else { 
+                // If branch at `line_number`, `branch_itr`-th branch was run at least once, mark it as 1. 
+                // Else 0
+                pb_info[branch_itr].runs[pb_info[branch_itr].num_branch] = (atoi(tokens[3]) > 0 ? 1 : 0);
             }
-            p_result_t[branch_itr].num_branch++;
+            pb_info[branch_itr].num_branch++;
             tot_branches++;
-        } else if(strncmp(line, "branch", 6) != 0 && strncmp(line, "call", 4) != 0 && strncmp(line, "function", 8) != 0){
-            // line coverage
-            char * covered = trim( strtok( line, ":" ));
-            line_number = atoi( trim( strtok( 0x0, ":" )));
-            
+            tot_branches_covered += pb_info[branch_itr].runs[pb_info[branch_itr].num_branch];
+        } else  {
+            if(strncmp(line, "branch", 6) != 0 && strncmp(line, "call", 4) != 0 && strncmp(line, "function", 8) != 0){
+                // line coverage
+                char * covered = trim( strtok( line, ":" ));
+                line_number = atoi( trim( strtok( 0x0, ":" )));
+            }
+
             if(branch_flag == 1){
                 branch_itr++;
             }
             branch_flag = 0;
-            continue;         
-        }else {
-            if(branch_flag == 1){
-                branch_itr++;
-            }
-            branch_flag = 0;
+            pb_info[branch_itr].num_branch = 0;
         }
     }
-    
+    pcov_info->tot_branches = tot_branches ;
+    pcov_info->tot_branches_covered = tot_branches_covered;
+
     fclose(fp);
-    return branch_itr;    
+    return tot_branches;    
 }
 
 // Malloced. Need to be freed.
@@ -182,10 +168,10 @@ extract_filename(char *filepath)
     return filename;
 }
 
-// Malloced
-// From gc_path, get all the files 
+// Gets src_dirpath and iterate. Find all the files end with .c and add them to src_array
+// Allocates memory to the names of the files
 int
-get_filenames(char *src_dirpath, char ** src_array)
+get_file_names(char *src_dirpath, char ** src_array)
 {
     DIR * dir_ptr = 0x0;
     struct dirent * file = 0x0;
@@ -202,8 +188,9 @@ get_filenames(char *src_dirpath, char ** src_array)
             // and if file name contains it at the end of file, add it to the cov list
             if(file->d_name + (strlen(file->d_name) - 2) == dot_c_ptr){
                 // TODO : How to make it secure?
-                src_array[i] = file->d_name;
-                //strncpy(src_array[i], file->d_name, 256);
+                
+                strncpy(src_array[i], file->d_name, NAME_MAX);
+                
                 i++;
             }
         }
@@ -213,51 +200,21 @@ get_filenames(char *src_dirpath, char ** src_array)
     return i;
 }
 
-void
-copy_b_result(b_result_t * dest, b_result_t * src){
-    strncpy(dest->file_name, src->file_name, 256);
-    dest->line_num = src->line_num;
-    dest->num_branch = src->num_branch;
-    //dest-> = src->file_name;
-}
-
-int
-mult_src_cov(char * src_dir_path, b_result_t ** pp_result_t){
-    char * src_array[MAX_SRC_FILES]; 
-    printf("here") ;
-    
-    int num_files = get_filenames(src_dir_path, src_array);
-    if(num_files > MAX_SRC_FILES){
-        fprintf(stderr, "number of source files are greater than MAX_SRC_FILES");
-        exit(1);
-    }
-    
-    for(int i = 0 ; i < num_files ; i++){
-        char * filename = src_array[i]; //extract_filename(src_array[i]);
-        int num_line_w_branches = read_gcov_coverage_with_bc_option(filename, pp_result_t[i]);
-        free(filename);    
-    }
-
-
-#ifdef DEBUG
-    for(int i = 0; i < num_files; i++){
-        printf("%s\n",src_array[i]);
-    }
-#endif // DEBUG
-}
 
 // Iteratre from end of the path. If `.` is found gets rid of it and 
 // Is it needed?
 int
 remove_gcda(char *filepath)
 {   
-    char *gcda_path = 0x0;
+    char gcda_path[PATH_MAX];
+    
     int len = strlen(filepath);
+    // put .gcda after .c 
     for(int i = len - 1 ; i >= 0 ; i--){
         if(filepath[i] == '.'){
             gcda_path = (char*) calloc(i + 5, sizeof(char));
-
             assert(gcda_path);
+
             strncpy(gcda_path, filepath, i + 1);
             sprintf(gcda_path, "%s%s", gcda_path, "gcda");
             break;
@@ -267,43 +224,76 @@ remove_gcda(char *filepath)
         return -1;
     } else{
         if(remove(gcda_path) != 0){
-            free(gcda_path);
-            perror("Error in removing gcda");
-            exit(1);
+            //perror("Error in removing gcda");
+            printf("couldn't remove %s \n", gcda_path);
         }
         free(gcda_path);
         return 0;
     }
 }
 
-
-void 
-execute_line_cov(char* filepath, char* gcpath, char ** args, int argc, int * coverage)
+int
+gcov_multiple(char ** src_array, int num_files, char * src_dir_path, cov_info_t ** ppcov_info)
 {
-    gcov_creater(filepath, gcpath, argc, args);
+    int tot_branches = 0;
+    char file_path[PATH_MAX];
+    char abs_file_path[PATH_MAX];
+    char abs_dir_path[PATH_MAX];
 
-    char * filename = extract_filename(filepath);
-    read_gcov_coverage(filename, coverage);
-    free(filename);
 
-#ifdef DEBUG
-    print_coverage(coverage);
-#endif // DEBUG
+    for(int i = 0; i < num_files; i++) {
+        sprintf(file_path, "%s/%s", src_dir_path, src_array[i]);
+        
+        
+        if(realpath(file_path, abs_file_path) == 0x0){
+            perror("Error in realpath in test_multi_source");
+            exit(1);
+        }
+
+        if(realpath(src_dir_path, abs_dir_path) == 0x0){
+            printf("fp : %s\n",abs_dir_path);
+            perror("Error in realpath in test_multi_source");
+            exit(1);
+        }
+
+        exec_gcov_with_bc_option(abs_file_path, abs_dir_path);
+        
+        // read coverage 
+        int num_branches = read_gcov_coverage_with_bc_option(abs_file_path, ppcov_info[i]);
+        
+        if(num_branches == -1){
+            continue;
+        }
+        tot_branches += num_branches;
+    }
+    return tot_branches;
 }
 
-
+// get coverage of already compiled and executed src files that are in one dir.
 void
-execute_branch_cov(char* filepath, char* gcpath,  char ** args, int argc, b_result_t *p_result_t)
+test_multi_source()
 {
-    gcov_branch_creater(filepath, gcpath, argc, args);
+    char * src_dir_path = "target/bc-1.07.1/bc";
 
-    char * filename = extract_filename(filepath);
-    int num_line_w_branches = read_gcov_coverage_with_bc_option(filename, p_result_t);
-    free(filename);
-    
-#ifdef DEBUG
-    print_branch_coverage(p_result_t, num_line_w_branches);
-#endif // DEBUG
+    char **src_array = (char **) malloc(sizeof(char*) * MAX_NUM_SRC);
+    for(int i = 0 ; i < MAX_NUM_SRC ; i++){
+        src_array[i] = (char*) malloc(sizeof(char) * NAME_MAX);
+    }
+
+    cov_info_t ** cov_info = (cov_info_t **)malloc(sizeof(cov_info_t*) * MAX_NUM_SRC);
+    for(int i = 0 ; i < MAX_NUM_SRC ; i++){
+        cov_info[i] = (cov_info_t *) malloc(sizeof(cov_info_t) * MAX_COVERAGE_LINE);
+    }
+
+    int num_files = get_file_names(src_dir_path, src_array);
+
+    gcov_multiple(src_array, num_files, src_dir_path, cov_info);
+
+   print_branch_coverage(cov_info, num_files);
+
+    free_N((void **)src_array, MAX_NUM_SRC);
+    free_N((void **)cov_info, MAX_NUM_SRC);
+
 }
 
 
@@ -318,16 +308,21 @@ main()
     // char *gcpath = "./";
     // char * src_dirpath = "target";
     // int argc = 2;
-    // b_result_t b_coverages[MAX_COVERAGE_LINE] = {};
-    // execute_branch_cov(filepath, gcpath, args, argc, b_coverages);
+    // b_info_t b_coverages[MAX_COVERAGE_LINE] = {};
+    // execute_branch_cov(filepath, gpath, args, argc, b_coverages);
  
-    // b_result_t ** b_coverages = (b_result_t **)malloc(sizeof(b_result_t*) * MAX_SRC_FILES);
+    // b_info_t ** b_coverages = (b_info_t **)malloc(sizeof(b_info_t*) * MAX_SRC_FILES);
     // for(int i = 0 ; i < MAX_SRC_FILES ; i++){
-    //     b_coverages[i] = (b_result_t *) malloc(sizeof(b_result_t) * MAX_COVERAGE_LINE);
+    //     b_coverages[i] = (b_info_t *) malloc(sizeof(b_info_t) * MAX_COVERAGE_LINE);
     // }
-    b_result_t b_coverages[MAX_SRC_FILES][MAX_COVERAGE_LINE];
-    char * src_dir_path = "target";
-    mult_src_cov(src_dir_path, (b_result_t **)b_coverages);
+    // //b_info_t b_coverages[MAX_SRC_FILES][MAX_COVERAGE_LINE];
+    // char * src_dir_path = "target/bc-1.07.1/bc";
+    // char * bin_path = "target/bc-1.07.1/bc/bc";
+    // char *args[] = {"seed_corpus"} ;
+    // int argc = 2;
+    // mult_src_cov(src_dir_path, bin_path, (b_info_t **)b_coverages, args, argc);
+
+    test_multi_source();
 
     return 0;
 }

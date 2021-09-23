@@ -2,6 +2,8 @@
 #define _HAVE_FUZZ_INPUT_MAKER_H_ 
 
 #include "types.h"
+#include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <sys/types.h>
@@ -65,4 +67,5 @@ simp_arith(char * src, int len, char *dest, int bytes);
 
 int
 create_mut_str(int itr, char *src, int len, char *dest);
+
 #endif /* !_HAVE_FUZZ_INPUT_MAKER_H_ */

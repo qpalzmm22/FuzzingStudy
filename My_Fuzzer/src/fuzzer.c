@@ -1,7 +1,4 @@
 #include "../include/fuzzer.h"
-#include "../include/fuzz_input_maker.h"
-#include "../include/gcov_creater.h"
-#include "../include/coverage_calculator.h"
 
 
 #define READEND 0
@@ -23,8 +20,7 @@ create_tmp_dirs()
     // Change to path
 	char template[64] = "tmp_XXXXXX";
 
-	char * dir_name = (char *)malloc( 64 * sizeof(char));
-    assert(dir_name);
+	char * dir_name = (char *)a_calloc( 64 * sizeof(char));
 	
 	strcpy(dir_name, mkdtemp(template));	
 
@@ -256,7 +252,7 @@ seed_enqueue(char * seed_file)
     //     g_config->seed_queue.front = g_config->seed_queue.rear;
     // }
 
-    // vulnerable
+    // TODO : vulnerable?
     strcpy(g_config->seed_queue.queue[g_config->seed_queue.rear], seed_file);
     g_config->seed_queue.rear = (g_config->seed_queue.rear + 1) % MAX_SEED_FILES;
 
@@ -311,7 +307,7 @@ seed_init()
 char *
 make_seed(char * str, int len, char* seed_file)
 {
-    char seed_path[PATH_MAX + 256];
+    char seed_path[PATH_MAX + NAME_MAX];
 
     sprintf(seed_file, "seed_%d", g_seed_name_itr++);
     sprintf(seed_path,"%s/%s",g_config->seed_path, seed_file);
@@ -335,7 +331,7 @@ make_seed(char * str, int len, char* seed_file)
 int 
 read_seed(char* buf, char *seed_file)
 {
-    char seed_path[PATH_MAX + 256];
+    char seed_path[PATH_MAX + NAME_MAX];
     
     sprintf(seed_path, "%s/%s",g_config->seed_path, seed_file);
     FILE * fp;
@@ -357,20 +353,19 @@ read_seed(char* buf, char *seed_file)
 
     return received;
 }
+
 // g_config->prog_argv
 // strcpy? can't touch prog_args...
 void
 make_argv()
 {
     // Does not consider the case where argvs come as fuzzed input.
-    char ** argv = (char **) calloc( 1, sizeof(char*));
-    assert(argv);
+    char ** argv = (char **) a_calloc( sizeof(char*));
     
     argv[0] = g_config->prog_path;
     int argc = 1;
     
-    char * args = (char*) malloc((strlen(PROG_ARGS) + 1) * sizeof(char));
-    assert(args);
+    char * args = (char*) a_calloc((strlen(PROG_ARGS) + 1) * sizeof(char));
     
     // TODO : Better function...?
     strncpy(args, PROG_ARGS, strlen(PROG_ARGS) + 1);    
@@ -514,7 +509,6 @@ init_fuzzer(pConfig_t config)
 
     // --------------------- Other settings --------------------
 
-
     signal(SIGINT, signal_handler);
 
     // ---------------------- Coverage -------------------------
@@ -525,8 +519,13 @@ init_fuzzer(pConfig_t config)
     }
     g_config->fuzz_mode = FUZZ_MODE; 
 
+    // --------------------- source -------------------------//
 
-    // executable path
+    // Is it needed for one source file??
+    g_config->src_path = (char **) a_calloc(sizeof(char*) * MAX_NUM_SRC);
+    for(int i = 0 ; i < MAX_NUM_SRC ; i++){
+        g_config->src_path[i] = (char*) a_calloc(sizeof(char) * NAME_MAX);
+    }
 
     if(g_config->fuzz_mode == M_BIN){
         if( realpath(PROG_PATH, real_path ) == NULL) {
@@ -544,13 +543,11 @@ init_fuzzer(pConfig_t config)
             perror("Error on finding source code") ; 
             exit(1);
         } else if( access( real_path, R_OK ) == 0 ) {
-            strcpy(g_config->src_path, real_path) ;
+            strcpy(g_config->src_path[0], real_path) ;
         } else {
             perror("Can't access the source code") ;
             exit(1);
-        }
-        char * src_wo_path = extract_filename(g_config->src_path);
-        g_config->src_wo_path = src_wo_path;
+        } 
 
         if(COV_MODE != M_LINE && COV_MODE != M_BRANCH){
             fprintf(stderr, "COV_MODE must be set. 0 for line mode, 1 for branch mode\n");
@@ -558,7 +555,7 @@ init_fuzzer(pConfig_t config)
         }
         g_config->coverage_mode = COV_MODE;
 
-        char * tmp = get_bin_path(g_config->src_path);
+        char * tmp = get_bin_path(g_config->src_path[0]);
         if(tmp == 0x0){
             fprintf(stderr, "Error in getting bin path of the source code");
             exit(1);
@@ -566,7 +563,7 @@ init_fuzzer(pConfig_t config)
         strcpy(g_config->prog_path, tmp) ;
         free(tmp);
 
-        exec_gcc_coverage(g_config->src_path, g_config->prog_path);
+        exec_gcc_coverage(g_config->src_path[0], g_config->prog_path);
 
     } else if(g_config->fuzz_mode == M_COMPILED_BIN){
         if( realpath(PROG_PATH, real_path ) == NULL) {
@@ -579,29 +576,30 @@ init_fuzzer(pConfig_t config)
             exit(1);
         }
 
-        if( realpath(SRC_PATH, real_path ) == NULL) {
-            perror("Error on finding source code") ; 
-            exit(1);
-        } else if( access( real_path, R_OK ) == 0 ) {
-            strcpy(g_config->src_path, real_path) ;
+        if(SRC_PATH == 0x0){
+            if( realpath(SRC_DIR_PATH, real_path ) == NULL) {
+                perror("Error on finding program") ; 
+                exit(1);
+            } else if( access( real_path, R_OK ) == 0 ) {
+                strcpy(g_config->src_dir_path, real_path) ;
+            } else {
+                perror("Can't access the program") ;
+                exit(1);
+            }
+            g_config->d_num_src_files = get_file_names(g_config->src_dir_path, g_config->src_path);
         } else {
-            perror("Can't access the source code") ;
-            exit(1);
+            g_config->d_num_src_files = 1;
+            if( realpath(SRC_PATH, real_path ) == NULL) {
+                perror("Error on finding source code") ; 
+                exit(1);
+            } else if( access( real_path, R_OK ) == 0 ) {
+                strcpy(g_config->src_path[0], real_path) ;
+            } else {
+                perror("Can't access the source code") ;
+                exit(1);
+            }
         }
-
-        if( realpath(GC_PATH, real_path ) == NULL) {
-            perror("Error on finding program") ; 
-            exit(1);
-        } else if( access( real_path, R_OK ) == 0 ) {
-            strcpy(g_config->gc_path, real_path) ;
-        } else {
-            perror("Can't access the program") ;
-            exit(1);
-        }
-
         // TODO : Change to array
-        char * src_wo_path = extract_filename(g_config->src_path);
-        g_config->src_wo_path = src_wo_path;
 
         if(COV_MODE != M_LINE && COV_MODE != M_BRANCH){
             fprintf(stderr, "COV_MODE must be set. 0 for line mode, 1 for branch mode\n");
@@ -610,50 +608,72 @@ init_fuzzer(pConfig_t config)
         g_config->coverage_mode = COV_MODE;
     } 
 
+    // --------------------- 
+    
+    // if src_file_path exists, it's sigle file.
+    //  Else it's multiple file
+
+
     // --------------------- Initialize g_results----------------
+    g_seed_name_itr = 0;
+
 
     // It's useless since it's declared global?
     g_result.bugs = 0;
     g_result.tot_test_cases = 0;
     g_result.exec_time = 0;
     g_result.char_n = 0;
-     
-    g_result.tot_line_covered = 0;
-    memset(g_result.cov_set, 0, MAX_COVERAGE_LINE);
-    g_result.b_result = (b_result_t *) calloc(MAX_COVERAGE_LINE, sizeof(b_result_t));
-    assert(g_result.b_result);
 
-    g_seed_name_itr = 0;
-}
+    g_result.tot_branches = 0; 
+    g_result.tot_branches_covered = 0;
+    
 
-void
-calc_covered_lines()
-{
-    // O(lines)
-    for(int i = 0; i < MAX_COVERAGE_LINE; i++){
-        if(g_result.cov_set[i] > 0){
-            g_result.tot_line_covered++;
-        }
+    g_result.cov_set = (int **) a_calloc(MAX_NUM_SRC * sizeof(int*));
+
+    for(int i = 0; i < MAX_NUM_SRC; i++){
+        g_result.cov_set[i] = (int *) a_calloc(MAX_COVERAGE_LINE * sizeof(int));
     }
+
+    //memset(g_result.cov_set, 0, MAX_COVERAGE_LINE);
+    g_result.pp_union_cov = (cov_info_t **) a_calloc(MAX_NUM_SRC * sizeof(cov_info_t*));
+
+    for(int i = 0; i < MAX_NUM_SRC; i++){
+        g_result.pp_union_cov[i] = (cov_info_t *) a_calloc(MAX_COVERAGE_LINE * sizeof(cov_info_t));
+    }
+
 }
 
-// Assumes that gcov files do not return different branch structure.
-// returns 1 if it increased total coverage.
 int
-union_branch_cov(b_result_t * p_result)
+union_branch_cov(cov_info_t ** pp_cov_info)
 {
+    g_result.tot_branches = 0;
+    g_result.tot_branches_covered = 0;
     int inc_flag = 0;
-    for(int i = 0; i < g_result.tot_line_covered; i++){
-        g_result.b_result[i].line_num = p_result[i].line_num;
-        g_result.b_result[i].num_branch = p_result[i].num_branch; 
-        for(int j = 0; j < p_result[i].num_branch; j++){
-            if(g_result.b_result[i].runs[j] == 0 && p_result[i].runs[j] != 0 )
-                inc_flag = 1;
-            g_result.b_result[i].runs[j] += p_result[i].runs[j];
+    for(int i = 0 ; i < g_config->d_num_src_files ; i++){
+        
+        for(int j = 0 ; j < pp_cov_info[i]->tot_branches; j++ ){
+            // TODO : Unecessary repetitions. Please resolve.
+
+            g_result.pp_union_cov[i]->b_infos[j].line_num = pp_cov_info[i]->b_infos[j].line_num;
+            g_result.pp_union_cov[i]->b_infos[j].num_branch = pp_cov_info[i]->b_infos[j].num_branch;
+            
+
+            for(int k = 0 ; k < pp_cov_info[i]->b_infos[j].num_branch; k++){
+                if(g_result.pp_union_cov[i]->b_infos[j].runs[k] == 0 && pp_cov_info[i]->b_infos[j].runs[k] != 0){
+                    g_result.pp_union_cov[i]->tot_branches_covered++;
+                    inc_flag = 1;
+                }
+                g_result.pp_union_cov[i]->b_infos[j].runs[k] += pp_cov_info[i]->b_infos[j].runs[k];
+            }
+            
         }
+        g_result.pp_union_cov[i]->tot_branches = pp_cov_info[i]->tot_branches;
+        g_result.tot_branches += pp_cov_info[i]->tot_branches;
+        g_result.tot_branches_covered += g_result.pp_union_cov[i]->tot_branches_covered;
     }
     return inc_flag;
 }
+
 
 void 
 print_result()
@@ -663,8 +683,10 @@ print_result()
     printf("===================================================== FUZZING RESULT ================================================\n");
     if(g_config->fuzz_mode == M_BIN || g_config->fuzz_mode == M_COMPILED_BIN){
         printf("=                  Program Path : %70s            =\n", g_config->prog_path);
-    } else if(g_config->fuzz_mode == M_SRC){
-        printf("=                   Source Path : %70s            =\n", g_config->src_path);
+    } else if(g_config->d_num_src_files == 1){
+        printf("=                   Source Path : %70s            =\n", g_config->src_path[0]);
+    } else {
+        printf("=                    Source Dir : %70s            =\n", g_config->src_dir_path);
     }
     for(int i = 1; i < g_config->prog_argc; i++){
         printf("=                  Prog arg[%d] : %70s            =\n", i, g_config->prog_argv[i]);
@@ -681,19 +703,30 @@ print_result()
     if(g_config->fuzz_mode == M_SRC || g_config->fuzz_mode == M_COMPILED_BIN){
         printf("= ---------------------------------------------------- COVERAGE --------------------------------------------------- =\n");
         if(g_config->coverage_mode == M_LINE){
-            calc_covered_lines();
             
-            printf("=           Total lines covered : %70d            =\n", g_result.tot_line_covered);
-            for(int i = 0; i < MAX_COVERAGE_LINE; i++){
-                if(g_result.cov_set[i] > 0)
-                    printf("=            covered line [ %2d ] : %70d            =\n", i, g_result.cov_set[i]);
-            }
-        } else if(g_config->coverage_mode == M_BRANCH){
-            for(int i = 0; i < g_result.tot_line_covered; i++){
-                for(int j = 0; j < g_result.b_result[i].num_branch; j++ ){
-                    printf("=   Branch Line [ %10d ] ::   :: Branch [ %2d ] => %40d    %3.f %%           =\n", g_result.b_result[i].line_num, j, g_result.b_result[i].runs[j], (double )g_result.b_result[i].runs[j] / g_result.tot_test_cases * 100);
-                }
+            
+        //     printf("=           Total lines covered : %70d            =\n", g_result.tot_line_covered);
+        //     for(int i = 0; i < MAX_COVERAGE_LINE; i++){
+        //         if(g_result.cov_set[i] > 0)
+        //             printf("=            covered line [ %2d ] : %70d            =\n", i, g_result.cov_set[i]);
+        //     }
+        } else if( g_config->coverage_mode == M_BRANCH){
+            //calc_covered_branches();
+            printf("=               Branch Coverage : %70.3f %%          =\n", ((double)g_result.tot_branches_covered) * 100 / g_result.tot_branches);
+            printf("=                                                                                                                   =\n");
+            for(int i = 0 ; i < g_config->d_num_src_files; i++){
+                printf("=                      File [%d] : %70s            =\n", i, g_config->src_path[i]);
+                printf("=                         +---- : %70.5f %%          =\n", ((double) g_result.pp_union_cov[i]->tot_branches_covered) * 100 / g_result.pp_union_cov[i]->tot_branches);
                 printf("=                                                                                                                   =\n");
+                if(PRINT_BRANCH){
+                    for(int j = 0; j < g_result.pp_union_cov[i]->tot_branches; j++){
+                        b_info_t branch_info = g_result.pp_union_cov[i]->b_infos[j];
+                        for(int k = 0; k < branch_info.num_branch; k++){
+                            printf("=   Branch Line [ %10d ] ::   :: Branch [ %2d ] => %40d    %3.f %%           =\n", branch_info.line_num, k, branch_info.runs[k], (double)branch_info.runs[k] / g_result.tot_test_cases);
+                        }
+                        printf("=                                                                                                                   =\n");
+                    } 
+                }
             } 
         }
     } 
@@ -706,8 +739,11 @@ exit_protocol()
 {
     print_result();
 
-    free(g_result.b_result);
-    free(g_config->src_wo_path);
+    for(int i = 0 ; i < g_config->d_num_src_files; i++){
+        free(g_result.pp_union_cov[i]);
+    }
+    free(g_result.pp_union_cov);
+
     free(g_config->prog_argv[1]);
     free(g_config->prog_argv);
 }
@@ -725,6 +761,15 @@ signal_handler(int sig)
         // Do we need to free? 
         exit(1);
     }
+}
+
+// calloc with assert
+void *
+a_calloc(size_t nsize)
+{
+    void * tmp = calloc(1, nsize);
+    assert(tmp);
+    return tmp;
 }
 
 // Runs fuzz loop
@@ -750,7 +795,6 @@ fuzz_loop()
             exit_protocol();
             exit(0);
         }
-
         g_itr = i++;
         // TODO size can change
         char out_buff[g_config->tmp_buf_size];
@@ -762,15 +806,14 @@ fuzz_loop()
         char * seed_file;
         if(g_config->rnd_str_gen_type == T_RSG){
 
-            rand_str = (char *) malloc(sizeof(char) * (g_config->in_configs.max_len + 1));
-            assert(rand_str);
+            rand_str = (char *) a_calloc(sizeof(char) * (g_config->in_configs.max_len + 1));
 
             len = create_rand_str(g_config->in_configs, rand_str);
 
         } else if(g_config->rnd_str_gen_type == T_MUT){
 
-            rand_str = (char *) malloc(sizeof(char) * (g_config->in_configs.max_len + 1 + g_config->in_configs.max_mutation * 4));
-            assert(rand_str);
+            // TODO : How should I allocate sufficient amount of memory for random string input
+            rand_str = (char *) a_calloc(sizeof(char) * (g_config->in_configs.max_len + 1 + g_config->in_configs.max_mutation * 4));
             
             seed_file = seed_dequeue();
             len = read_seed(rand_str, seed_file);
@@ -809,54 +852,46 @@ fuzz_loop()
         memset(err_buff, 0, g_config->tmp_buf_size);
 
         if(g_config->fuzz_mode == M_SRC || g_config->fuzz_mode == M_COMPILED_BIN){
-            if(g_config->coverage_mode == M_LINE){  // TODO : FIX so that it gives feedback(seed)
+            cov_info_t ** cov_info = (cov_info_t **)a_calloc(sizeof(cov_info_t*) * MAX_NUM_SRC);
+            for(int i = 0 ; i < MAX_NUM_SRC ; i++){
+                cov_info[i] = (cov_info_t *) a_calloc(sizeof(cov_info_t) * MAX_COVERAGE_LINE);
+            }
 
-                // make gcov file
-                exec_gcov(g_config->src_wo_path, g_config->gc_path);
-
-                // read gcov file
-                int cov_bit_map[MAX_COVERAGE_LINE] = {0};
-                int n = read_gcov_coverage(g_config->src_wo_path, cov_bit_map);
-
-                for(int i = 0 ; i < MAX_COVERAGE_LINE; i++){
-                    g_result.cov_set[i] += cov_bit_map[i];
-                }
-            } else if(g_config->coverage_mode == M_BRANCH){
-                exec_gcov_with_bc_option(g_config->src_wo_path, g_config->gc_path);
-#ifdef DEBUG
-                printf("<%s> <%s>\n", g_config->src_wo_path, g_config->gc_path);
-#endif
-                b_result_t * p_result = (b_result_t *)calloc(MAX_COVERAGE_LINE, sizeof(b_result_t));
-                g_result.tot_line_covered = read_gcov_coverage_with_bc_option(g_config->src_wo_path, p_result);
+            gcov_multiple(g_config->src_path, g_config->d_num_src_files, g_config->src_dir_path, cov_info); 
                 
-                // Something is added to branch coverage
-                if(union_branch_cov(p_result) > 0){
-                    char new_seed_file[256];
-                    
-                    // make seed_file
-                    printf(" *** add %s to seed *** \n", rand_str);
-                    make_seed(rand_str, len, new_seed_file);
+            
+            // Something is added to branch coverage
+            if(union_branch_cov(cov_info) > 0){
+                char new_seed_file[NAME_MAX];
+                
+                // make seed_file
+                printf(" *** add %s to seed *** \n", rand_str);
+                make_seed(rand_str, len, new_seed_file);
 
-                    seed_enqueue(seed_file);
-                    seed_enqueue(new_seed_file);
-                } else {
-                    // TODO : If queue is full do not enqueue...?
-                    // Deal with the old and useless seeds 
-                    // If they are old, increase chaos level? 
-                    seed_enqueue(seed_file);
-                }
-                free(p_result);
+                seed_enqueue(seed_file);
+                seed_enqueue(new_seed_file);
+            } else {
+                // TODO : If queue is full do not enqueue...?
+                // Deal with the old and useless seeds 
+                // If they are old, increase chaos level? 
+                seed_enqueue(seed_file);
             }
 
+            free_N((void**)cov_info, MAX_NUM_SRC);
+        
             // remove gcov file
-            if(remove_gcda(g_config->src_path) != 0){
-                fprintf(stderr, "Error in src_path. Src_path must have dot in it\n");
-                exit(1);
+            for(int i = 0; i < g_config->d_num_src_files; i++){
+                if(remove_gcda(g_config->src_path[i]) != 0){
+                    fprintf(stderr, "Error in src_path. Src_path must have dot in it\n");
+                    exit(1);
+                }
             }
+
         } else if(g_config->fuzz_mode == M_BIN){
             seed_enqueue(seed_file);
         }
         free(rand_str);
+        print_result();
     }
 
     // Print result pretty

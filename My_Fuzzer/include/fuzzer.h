@@ -2,8 +2,11 @@
 #ifndef _HAVE_FUZZER_H_
 #define _HAVE_FUZZER_H_
 
+#include "types.h"
 #include "config.h"
-
+#include "fuzz_input_maker.h"
+#include "gcov_creater.h"
+#include "coverage_calculator.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,12 +22,14 @@
 
 char *create_tmp_dirs();
 
+void * a_calloc(size_t nsize);
+
 int my_fwrite(void * ptr, int n, FILE * stream);
 int my_fread(void * ptr, int n, FILE * stream);
 
 int get_rand_seed(char * rand_str);
 
-int union_branch_cov(b_result_t * p_result);
+int union_branch_cov(cov_info_t ** pp_cov_info);
 
 void make_input_files(char* str, int len, char *in_data_path);
 int exec_process(char * str, int len, int itr, char *out_path, char *err_path);

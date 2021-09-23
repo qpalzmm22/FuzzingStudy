@@ -1,13 +1,13 @@
 #ifndef _HAVE_TYPES_H_
 #define _HAVE_TYPES_H_
 
-#define MAX_COVERAGE_LINE 4096
+#define MAX_COVERAGE_LINE 512
+#define MAX_BRANCH 128
 
 #define MAX_SEED_FILES 1024
-
+#define MAX_NUM_SRC 100
 
 #include <linux/limits.h>
-#include "coverage_calculator.h"
 
 enum fz_mode{
     /* 0 */ M_SRC, // Fuzzing source file
@@ -43,7 +43,7 @@ typedef struct _queue{
     int size ;
     int front ;
     int rear ;
-    char queue[MAX_SEED_FILES][256] ;
+    char queue[MAX_SEED_FILES][NAME_MAX] ;
 }queue_t;
 
 
@@ -58,7 +58,7 @@ typedef struct _config{
  
     // fuzz mode 0 :=> input : source path
     enum fz_mode fuzz_mode ; // 0 = Source code, 1 = Executable binary file
-    char src_path[PATH_MAX] ;
+    char ** src_path ; // TODO CHANGE TO HEAP
     char * src_wo_path ;
 
     // fuzz mode 1 :=> input : binary path
@@ -71,8 +71,11 @@ typedef struct _config{
     // char** prog_argv ;
     // char prog_argc ;
 
-    // gcda, gcno path
-    char gc_path[PATH_MAX] ;
+    // src, gcov, gcda, gcno path
+    char src_dir_path[PATH_MAX] ;
+    
+    // d_ for system defining variables
+    int d_num_src_files; 
     
     // get c_files number from init 
     // char c_files[MAX_C_FILES][PATH_MAX];
@@ -97,17 +100,32 @@ typedef struct _config{
     enum cov_mode coverage_mode;
 
     int hang_timeout ; // timeout by seconds
+
     int (*oracle)(int, char*, int, char*, char*) ;
 } config_t, *pConfig_t ;
+
+typedef struct _branch_info{
+    int line_num; // line number of the branch containing line
+    int num_branch; // number of branches in one line
+    char runs[MAX_BRANCH]; // boolean of whether that bracnh was run
+} b_info_t, *pb_info;
+
+typedef struct _coverage_info{
+    char * file_name;
+    int tot_branches;
+    int tot_branches_covered;
+    b_info_t b_infos[MAX_COVERAGE_LINE]; // info per branch 
+} cov_info_t, *pcov_info_t;
 
 typedef struct _result{
     int bugs ;
     int tot_test_cases ;
     double exec_time;
     int char_n ;
-    int tot_line_covered;
-    int cov_set[MAX_COVERAGE_LINE];
-    b_result_t *b_result;
+    int tot_branches;
+    int tot_branches_covered;
+    int **cov_set;
+    cov_info_t ** pp_union_cov;
 }result_t ,*pResult_t;
 
 

@@ -1,17 +1,8 @@
 #ifndef _HAVE_COVERAGE_CALCULATOR_H_
 #define _HAVE_COVERAGE_CALCULATOR_H_
 
-#define MAX_BRANCH 32
-#define MAX_SRC_FILES 100
-
-typedef struct _branch_result{
-    char file_name[256];
-    int line_num;
-    int num_branch;
-    int runs[MAX_BRANCH];
-} b_result_t, p_result_t;
-
-
+#include "gcov_creater.h"
+#include "types.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -21,7 +12,9 @@ typedef struct _branch_result{
 #include <regex.h>
 #include <dirent.h>
 
-#include "../include/gcov_creater.h"
+
+void
+free_N(void ** pp_alloc, int num);
 
 char * 
 trim(char* str);
@@ -30,16 +23,20 @@ void
 print_coverage(int * coverage);
 
 void
-print_branch_coverage(b_result_t * p_result_t, int num_line_w_branches);
+print_branch_coverage(cov_info_t ** pb_info, int num_line_w_branches);
+
 
 int 
-read_gcov_coverage(char * c_file, int * coverage);
+read_gcov_coverage_with_bc_option(char * c_file, cov_info_t * pb_info);
 
-int 
-read_gcov_coverage_with_bc_option(char * c_file, b_result_t * p_result_t);
+int
+get_file_names(char *src_dirpath, char ** src_array);
 
 int
 remove_gcda(char *filepath);
+
+int
+gcov_multiple(char ** src_array, int num_files, char * src_dir_path, cov_info_t ** pcov_info);
 
 char *
 extract_filename(char *filepath);
@@ -48,6 +45,6 @@ void
 execute_line_cov(char* filepath, char* gcpath, char ** args, int argc, int * coverage);
 
 void
-execute_branch_cov(char* filepath, char* gcpath, char ** args, int argc, b_result_t *p_result_t);
+execute_branch_cov(char* filepath, char* gcpath, char ** args, int argc, b_info_t *pb_info);
 
 #endif /* !_HAVE_COVERAGE_CALCULATOR_H_ */

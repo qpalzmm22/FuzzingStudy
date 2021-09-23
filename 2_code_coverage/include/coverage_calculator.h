@@ -7,7 +7,7 @@ typedef struct _branch_result{
     int line_num;
     int num_branch;
     int runs[MAX_BRANCH];
-} b_result_t;
+} b_info_t;
 
 
 #include <stdio.h>
@@ -27,13 +27,13 @@ void
 print_coverage(int * coverage);
 
 void
-print_branch_coverage(b_result_t * p_result_t, int num_line_w_branches);
+print_branch_coverage(b_info_t * pb_info, int num_line_w_branches);
 
 int 
 read_gcov_coverage(char * c_file, int * coverage);
 
 int 
-read_gcov_coverage_with_bc_option(char * c_file, b_result_t * p_result_t);
+read_gcov_coverage_with_bc_option(char * c_file, b_info_t * pb_info);
 
 int
 remove_gcda(char *filepath);
@@ -45,6 +45,6 @@ void
 execute_calc(char* filepath, char ** args, int argc, int * coverage);
 
 void
-execute_branch_cov(char* filepath, char ** args, int argc, b_result_t *p_result_t);
+execute_branch_cov(char* filepath, char ** args, int argc, b_info_t *pb_info);
 
 #endif /* !_HAVE_COVERAGE_CALCULATOR_H_ */

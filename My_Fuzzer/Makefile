@@ -29,7 +29,5 @@ fuzz_url_parser :  src/fuzzer.c src/fuzz_input_maker.c src/gcov_creater.c src/co
 url_parser_tester : src/fuzz_input_maker.c target/URL_parser/http_program.c test/url_parser_tester.c
 	gcc -o bin/url_parser_tester src/fuzz_input_maker.c target/URL_parser/http_program.c test/url_parser_tester.c
 
-
-
 clean : 
-	rm -r bin/* tmp* ./*.c a.out *.gcda *.gcno *.gcov seed_corpus/seed_*
+	rm -r bin/* tmp* ./*.c a.out seed_corpus/seed_* 2> /dev/null

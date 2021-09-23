@@ -6,7 +6,7 @@
 
 */
 
-#define DEBUG
+// #define DEBUG
 
 static int8_t interesting_8[] = { KNOWNINT_8 };
 static int16_t interesting_16[] = { KNOWNINT_8, KNOWNINT_16 };
@@ -227,101 +227,6 @@ flip_bit(char *src, int len, char *dest, int num_bytes)
 
 	return len ;
 }
-
-
-
-// // 1,2,4 byte flip
-// int
-// flip_byte(char *src, int len, char *dest, int num_bytes)
-// {
-// #ifdef DEBUG
-// 	printf("================= Flip Byte =================\n");
-// #endif // DEBUG
-// 	if(len == 0){
-// 		memcpy(dest, src, len+1);
-// 		return len;
-// 	}
-// 	char tmp_src[len + 1];
-// 	memcpy(tmp_src, src, len + 1);
-
-// 	unsigned int bit = 0xFF; // b'11111111	
-
-// 	int ind = rand() % (len - num_bytes + 1) ;
-
-// 	memcpy(dest, tmp_src, ind);
-// 	for(int i = 0; i < num_bytes; i++){
-// 		dest[ind + i] = tmp_src[ind + i] ^ bit;
-// 	}
-	
-// 	memcpy(dest + ind + num_bytes, tmp_src + ind + num_bytes, len - ind);
-
-// #ifdef DEBUG
-// 	printf("ind : %d \n", ind);
-// #endif // DEBUG
-
-// 	return len ;
-// }
-
-// // Does simple arithmetic on single btye.
-// int
-// simp_arith(char *src, int len, char *dest, int num_bytes)
-// {
-// #ifdef DEBUG
-// 	printf("================= Simple Arith =================\n");
-// #endif // DEBUG
-// 	if(len == 0){
-// 		memcpy(dest, src, len+1);
-// 		return len;
-// 	}
-// 	char tmp_src[len + 1];
-// 	memcpy(tmp_src, src, len + 1);
-	
-// 	// d
-// 	int operand = rand() % (ARITH_MAX * 2 + 1) - ARITH_MAX; // [-35 ~ 35] inclusive
-// 	int ind = rand() % (len - num_bytes + 1 );
-
-// 	memcpy(dest, tmp_src, ind);
-
-// 	for(int i = 0; i < num_bytes; i++){
-// 		dest[ind + i] = tmp_src[ind + i] + operand;
-// 	}
-// #ifdef DEBUG
-// 	printf("ind : %d, operand : %d \n", ind, operand);
-// #endif // DEBUG
-
-// 	return len;
-// }
-
-
-// int
-// swap_known_ints(char *src, int len, char *dest, int num_bytes)
-// {
-// #ifdef DEBUG
-// 	printf("================= Swapping =================\n");
-// #endif // DEBUG
-// 	if(len == 0){
-// 		memcpy(dest, src, len+1);
-// 		return len;
-// 	}
-// 	char tmp_src[len + 1];
-// 	memcpy(tmp_src, src, len + 1);
-
-// 	memcpy(dest, src, len + 1);
-
-// 	int ind = rand() % (len - num_bytes + 1);
-
-// 	switch (num_bytes) {
-// 		case 4 :
-// 			*(uint32_t *) (dest + ind) = interesting_32[rand() % (sizeof(interesting_32) / 32)];
-// 			break;
-// 		case 2 :
-// 			*(uint16_t *) (dest + ind) = interesting_16[rand() % (sizeof(interesting_16) / 16)];
-// 			break;
-// 		default :
-// 			*(dest + ind) = interesting_8[rand() % (sizeof(interesting_8) / 8)];
-// 	}
-// 	return len;
-// }
 
 int
 run_mut_wrapper(char * src, int len, char *dest){
