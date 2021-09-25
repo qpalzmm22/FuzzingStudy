@@ -3,12 +3,12 @@
 // #define DEBUG
 
 void
-free_N(void ** pp_alloc, int num)
+free_N(void ** pp_allocated, int num)
 {
     for(int i = 0; i < num; i++){
-        free(pp_alloc[i]);
+        free(pp_allocated[i]);
     }
-    free(pp_alloc);
+    free(pp_allocated);
 }
 
 char * 
@@ -200,36 +200,41 @@ get_file_names(char *src_dirpath, char ** src_array)
     return i;
 }
 
+/*
+    Description : 
+    Input is presumely filepath of c file that requires gcda to be removed. 
+    This function will spot last "." from `filepath` and remove everything after it.
+    Then it will add "gcda\0" at the end of the path. 
 
-// Iteratre from end of the path. If `.` is found gets rid of it and 
-// Is it needed?
+    Expectations :
+    This function assumes that gcda files and src files are in the same directory.
+
+    Return value :
+    If iw was successful, it will return 0.
+    If it wasn't(couldn't find file, couldn't find "." from `filepath`, etc" ) -1.
+*/
 int
 remove_gcda(char *filepath)
 {   
     char gcda_path[PATH_MAX];
-    
-    int len = strlen(filepath);
-    // put .gcda after .c 
-    for(int i = len - 1 ; i >= 0 ; i--){
-        if(filepath[i] == '.'){
-            gcda_path = (char*) calloc(i + 5, sizeof(char));
-            assert(gcda_path);
 
-            strncpy(gcda_path, filepath, i + 1);
-            sprintf(gcda_path, "%s%s", gcda_path, "gcda");
-            break;
+    strcpy(gcda_path, filepath);
+    int len = strlen(gcda_path);
+
+    for(int i = len - 1 ; i >= 0 ; i--){
+        if(PATH_MAX > i + 5 && gcda_path[i] == '.'){
+
+            memcpy( gcda_path + i + 1, "gcda", 4);
+            gcda_path[i + 5] = 0x0;
+
+            if(remove(gcda_path) != 0){
+                return  0;
+            } else {
+                return 0;
+            }
         }
     }
-    if(gcda_path == 0x0){
-        return -1;
-    } else{
-        if(remove(gcda_path) != 0){
-            //perror("Error in removing gcda");
-            printf("couldn't remove %s \n", gcda_path);
-        }
-        free(gcda_path);
-        return 0;
-    }
+    return -1;
 }
 
 int

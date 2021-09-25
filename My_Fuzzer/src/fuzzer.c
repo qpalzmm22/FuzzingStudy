@@ -1,6 +1,5 @@
 #include "../include/fuzzer.h"
 
-
 #define READEND 0
 #define WRITEEND 1
 
@@ -10,9 +9,17 @@ static pConfig_t g_config;
 static result_t g_result;
 static pid_t g_pid;
 static int g_itr;
-static int g_seed_name_itr;
+static seed_info_t g_seed_info;
 
-// TODO : template
+
+/*
+    Description : 
+    Using 'mkdtemp', creates randomly named folder 
+    and create folders named "inputs/", "outputs/", "errors/".
+
+    Return value : 
+    Retunrs randomly created name of the folder
+*/
 char * 
 create_tmp_dirs()
 {
@@ -50,7 +57,14 @@ create_tmp_dirs()
     return dir_name;
 }
 
-
+/*
+    Description : 
+    Simple wrapper function that writes to `stream` for `n` bytes
+    and store from `ptr` buffer.
+    
+    Return value : 
+    Actual number of bytes wrote. It must match n.
+*/
 int
 my_fwrite(void * ptr, int n, FILE * stream)
 {
@@ -63,7 +77,14 @@ my_fwrite(void * ptr, int n, FILE * stream)
 	return sent;
 }
 
-// fread() safe version
+/*
+    Description : 
+    Simple wrapper function that reads from `stream` for `n` bytes 
+    and store it in `ptr`
+
+    Return value :
+    Actually received number of bytes. It must match n.
+*/
 int
 my_fread(void * ptr, int n, FILE * stream)
 {
@@ -76,6 +97,28 @@ my_fread(void * ptr, int n, FILE * stream)
 	return received;
 }
 
+/*
+    Description : 
+    Simple wrapper function that does calloc, and then assert that it was valid.
+
+    Return value : 
+    pointer to allocated block.
+*/
+void *
+a_calloc(size_t nsize)
+{
+    void * tmp = calloc(1, nsize);
+    assert(tmp);
+    return tmp;
+}
+
+/*
+    Description : 
+    make input files with string of `str` with length of `len` on `in_data_path` path.
+    
+    Return value :
+    None 
+*/
 void
 make_input_files(char* str, int len, char *in_data_path)
 {
@@ -91,6 +134,11 @@ make_input_files(char* str, int len, char *in_data_path)
     fclose(fp);
 }
 
+/*
+    Description : 
+    
+    Return value : 
+*/
 int
 exec_process(char * str, int len, int itr, char *out_buff, char *err_buff)
 {
@@ -239,78 +287,80 @@ exec_process(char * str, int len, int itr, char *out_buff, char *err_buff)
 
 }
 
-void
-seed_enqueue(char * seed_file)
-{
-    if(g_config->seed_queue.size + 1 == MAX_SEED_FILES){
-        fprintf(stderr, "Queue is full\n");
-        return;
-    }
-    g_config->seed_queue.size++;
+/*
+    Description :
+    Adds seed to seed list with given `weight`
     
-    // if(g_config->seed_queue.size == 1){
-    //     g_config->seed_queue.front = g_config->seed_queue.rear;
-    // }
-
-    // TODO : vulnerable?
-    strcpy(g_config->seed_queue.queue[g_config->seed_queue.rear], seed_file);
-    g_config->seed_queue.rear = (g_config->seed_queue.rear + 1) % MAX_SEED_FILES;
-
-}
-
-
-// Dequeues a seed from seed queue.
-char*
-seed_dequeue()
+    Return value : 
+    None
+*/
+void
+add_seed(int weight)
 {
-    char* seed;
-    if(g_config->seed_queue.size == 0){
-        fprintf(stderr, "No seed in the queue\n");
-        return 0x0;
-    }
-    g_config->seed_queue.size--;
-
-    seed = g_config->seed_queue.queue[g_config->seed_queue.front];
-    if(g_config->seed_queue.size == 0){
-        g_config->seed_queue.front = -1;
-    } else {
-        g_config->seed_queue.front = (g_config->seed_queue.front + 1) % MAX_SEED_FILES;
-    }
-    return seed;
+    g_seed_info.weight[g_seed_info.num_seed++] = weight;
 }
 
+/*
+    Description : 
+    Gets index of the seed by random.
 
-// g_config->seed_queue.queue must be freed
+    Expectation : 
+
+    Return value : 
+    Random index of seeds.
+*/
+int
+get_seed_ind()
+{
+    return rand() % (g_seed_info.num_seed);
+}
+
+/*
+    Description : 
+    Search files with name starting with "seed_" and add them to seed list. 
+    Here, the `g_seed_info.weight` contains weight of the seed list, and the `g_seed_info.num_seed` acts as index iterator 
+
+    Expectation : 
+    Users must make seed files with name 'seed_n' where n starts from 0.
+    And there must not be a jump in number, or else fuzer will overwrite the existing seed.
+
+    Return value : 
+    None
+*/
 void
 seed_init()
 {
-    g_config->seed_queue.front = 0;
-    g_config->seed_queue.rear = 0;
-    g_config->seed_queue.size = 0;
+    char seed_file[PATH_MAX + NAME_MAX]; 
 
-    DIR * dfd;
-
-    if((dfd = opendir(g_config->seed_path)) == 0x0){
-        perror("Error on opening seed_path dir");
-        exit(1);
-    }
-
-    int num_seed_files = 0;
-    struct dirent *dp;
-    while ((dp = readdir(dfd)) != NULL){
-        if(dp->d_type != DT_REG)
-            continue;
-        seed_enqueue(dp->d_name);
+    while(1){
+        sprintf(seed_file,"%s/%s%d", g_config->seed_path, "seed_", g_seed_info.num_seed);
+        
+        if( access( seed_file, R_OK ) != 0 ) {
+            if(g_seed_info.num_seed == 0){
+                perror("You must put at least one seed in seed_corpus dir");
+                exit(1);
+            }
+            break;
+        }
+        add_seed(1);     
     }
 }
 
-char *
-make_seed(char * str, int len, char* seed_file)
+/*
+    Description : 
+    Create file with name of "seed_n" where n is `seed_ind` 
+    and content of `str` with length of `len`.
+
+    Expectation : 
+    
+    Return value : 
+    None
+*/
+void
+make_seed_file(char * str, int len, int seed_ind)
 {
     char seed_path[PATH_MAX + NAME_MAX];
-
-    sprintf(seed_file, "seed_%d", g_seed_name_itr++);
-    sprintf(seed_path,"%s/%s",g_config->seed_path, seed_file);
+    sprintf(seed_path,"%s/seed_%d",g_config->seed_path, seed_ind);
 
     FILE * fp;
 
@@ -320,20 +370,28 @@ make_seed(char * str, int len, char* seed_file)
     }
 
     if(my_fwrite(str, len, fp) != len){
-        fprintf(stderr, "Error in my_writing seed file\n");
+        fprintf(stderr, "Error in my_fwriting seed file\n");
     }
 
     fclose(fp);
-
-    return seed_file;
 }
 
+/*
+    Description : 
+    Search files with name of "seed_n" where n is `seed_ind` and return its content to `buf`. 
+
+    Expectation : 
+    The buf must be big enough to hold contents from seed file.
+
+    Return value : 
+    Length of the returned seed.
+*/
 int 
-read_seed(char* buf, char *seed_file)
+read_seed_file(char* buf, int seed_ind)
 {
     char seed_path[PATH_MAX + NAME_MAX];
     
-    sprintf(seed_path, "%s/%s",g_config->seed_path, seed_file);
+    sprintf(seed_path, "%s/seed_%d",g_config->seed_path, seed_ind);
     FILE * fp;
 
     if((fp = fopen(seed_path, "r")) == NULL){
@@ -354,8 +412,16 @@ read_seed(char* buf, char *seed_file)
     return received;
 }
 
-// g_config->prog_argv
-// strcpy? can't touch prog_args...
+/*
+    Description : 
+    Search files with name of "seed_n" where n is `seed_ind` and return its content to buf. 
+
+    Expectation : 
+    The buf must be big enough to hold contents from seed file.
+
+    Return value : 
+    Length of the returned seed.
+*/
 void
 make_argv()
 {
@@ -387,8 +453,14 @@ make_argv()
     g_config->prog_argc = argc ;
 }   
 
-// Returns 1 if return code is 0.
-// TODO : How to make a generic oracle?? 
+/*
+    Description : 
+    Fuzzer will automactically use this oracle if no oracle was given by user.
+    This oracle examines return code and consider it as bug if the return code was not 0
+    
+    Return value : 
+    0 for no bug, 1 for bug.
+*/
 int
 default_oracle(int exit_code, char* input, int input_len, char* stdout_buff, char* stderr_buff)
 {
@@ -398,10 +470,22 @@ default_oracle(int exit_code, char* input, int input_len, char* stdout_buff, cha
         return 1;
 }
 
-// Sets and check the inputs, change so that it recieve pointer to config_t 
+
+
+/*
+    Description : 
+    This function gets configuration setting from user.
+    The input `config` is set. If user has options missing, Fuzzer uses values in config.h
+    which is set of default setting. (Not implemented)
+
+    Return value : 
+    None. Global variable, g_config is set.
+*/
 void
 init_fuzzer(pConfig_t config)
 {
+    srand(time(NULL));
+
     char real_path[PATH_MAX] ;
 
     if(config == 0x0){
@@ -428,6 +512,7 @@ init_fuzzer(pConfig_t config)
             exit(1);
         }
 
+        g_seed_info.num_seed = 0;
         seed_init();
     }
 
@@ -521,7 +606,6 @@ init_fuzzer(pConfig_t config)
 
     // --------------------- source -------------------------//
 
-    // Is it needed for one source file??
     g_config->src_path = (char **) a_calloc(sizeof(char*) * MAX_NUM_SRC);
     for(int i = 0 ; i < MAX_NUM_SRC ; i++){
         g_config->src_path[i] = (char*) a_calloc(sizeof(char) * NAME_MAX);
@@ -615,7 +699,6 @@ init_fuzzer(pConfig_t config)
 
 
     // --------------------- Initialize g_results----------------
-    g_seed_name_itr = 0;
 
 
     // It's useless since it's declared global?
@@ -628,7 +711,7 @@ init_fuzzer(pConfig_t config)
     g_result.tot_branches_covered = 0;
     
 
-    g_result.cov_set = (int **) a_calloc(MAX_NUM_SRC * sizeof(int*));
+    g_result.cov_set = (int **) a_calloc(g_config->d_num_src_files * sizeof(int*));
 
     for(int i = 0; i < MAX_NUM_SRC; i++){
         g_result.cov_set[i] = (int *) a_calloc(MAX_COVERAGE_LINE * sizeof(int));
@@ -642,7 +725,18 @@ init_fuzzer(pConfig_t config)
     }
 
 }
+/*
+    Description : 
+    Union coverage information for g_result.pp_union_cov with input, `pp_cov_info`
+    While at it, it also continuously copies the other infomation 
+    like number of brances or number of bracnches covered
 
+    Expectation : 
+
+    Return value : 
+    Return 1 if union has made change to original set
+    Return 0 if not.
+*/
 int
 union_branch_cov(cov_info_t ** pp_cov_info)
 {
@@ -661,9 +755,9 @@ union_branch_cov(cov_info_t ** pp_cov_info)
             for(int k = 0 ; k < pp_cov_info[i]->b_infos[j].num_branch; k++){
                 if(g_result.pp_union_cov[i]->b_infos[j].runs[k] == 0 && pp_cov_info[i]->b_infos[j].runs[k] != 0){
                     g_result.pp_union_cov[i]->tot_branches_covered++;
+                    g_result.pp_union_cov[i]->b_infos[j].runs[k] += pp_cov_info[i]->b_infos[j].runs[k];
                     inc_flag = 1;
                 }
-                g_result.pp_union_cov[i]->b_infos[j].runs[k] += pp_cov_info[i]->b_infos[j].runs[k];
             }
             
         }
@@ -675,6 +769,33 @@ union_branch_cov(cov_info_t ** pp_cov_info)
 }
 
 
+/*
+    Description : 
+    Print result of fuzzing
+
+    Expectation : 
+
+    Return value : 
+    None
+
+*/
+void
+make_log_result()
+{
+
+}
+
+
+/*
+    Description : 
+    Print result of fuzzing
+
+    Expectation : 
+
+    Return value : 
+    None
+
+*/
 void 
 print_result()
 {
@@ -702,33 +823,22 @@ print_result()
     
     if(g_config->fuzz_mode == M_SRC || g_config->fuzz_mode == M_COMPILED_BIN){
         printf("= ---------------------------------------------------- COVERAGE --------------------------------------------------- =\n");
-        if(g_config->coverage_mode == M_LINE){
-            
-            
-        //     printf("=           Total lines covered : %70d            =\n", g_result.tot_line_covered);
-        //     for(int i = 0; i < MAX_COVERAGE_LINE; i++){
-        //         if(g_result.cov_set[i] > 0)
-        //             printf("=            covered line [ %2d ] : %70d            =\n", i, g_result.cov_set[i]);
-        //     }
-        } else if( g_config->coverage_mode == M_BRANCH){
-            //calc_covered_branches();
-            printf("=               Branch Coverage : %70.3f %%          =\n", ((double)g_result.tot_branches_covered) * 100 / g_result.tot_branches);
+        printf("=               Branch Coverage : %70.3f %%          =\n", ((double)g_result.tot_branches_covered) * 100 / g_result.tot_branches);
+        printf("=                                                                                                                   =\n");
+        for(int i = 0 ; i < g_config->d_num_src_files; i++){
+            printf("=                      File [%d] : %70s            =\n", i, g_config->src_path[i]);
+            printf("=                         +---- : %70.5f %%          =\n", ((double) g_result.pp_union_cov[i]->tot_branches_covered) * 100 / g_result.pp_union_cov[i]->tot_branches);
             printf("=                                                                                                                   =\n");
-            for(int i = 0 ; i < g_config->d_num_src_files; i++){
-                printf("=                      File [%d] : %70s            =\n", i, g_config->src_path[i]);
-                printf("=                         +---- : %70.5f %%          =\n", ((double) g_result.pp_union_cov[i]->tot_branches_covered) * 100 / g_result.pp_union_cov[i]->tot_branches);
-                printf("=                                                                                                                   =\n");
-                if(PRINT_BRANCH){
-                    for(int j = 0; j < g_result.pp_union_cov[i]->tot_branches; j++){
-                        b_info_t branch_info = g_result.pp_union_cov[i]->b_infos[j];
-                        for(int k = 0; k < branch_info.num_branch; k++){
-                            printf("=   Branch Line [ %10d ] ::   :: Branch [ %2d ] => %40d    %3.f %%           =\n", branch_info.line_num, k, branch_info.runs[k], (double)branch_info.runs[k] / g_result.tot_test_cases);
-                        }
-                        printf("=                                                                                                                   =\n");
-                    } 
-                }
-            } 
-        }
+            if(PRINT_BRANCH){
+                for(int j = 0; j < g_result.pp_union_cov[i]->tot_branches; j++){
+                    b_info_t branch_info = g_result.pp_union_cov[i]->b_infos[j];
+                    for(int k = 0; k < branch_info.num_branch; k++){
+                        printf("=   Branch Line [ %10d ] ::   :: Branch [ %2d ] => %40d    %3.f %%           =\n", branch_info.line_num, k, branch_info.runs[k], (double)branch_info.runs[k] / g_result.tot_test_cases);
+                    }
+                    printf("=                                                                                                                   =\n");
+                } 
+            }
+        } 
     } 
     printf("=====================================================================================================================\n");
     printf("\n\n");
@@ -763,16 +873,13 @@ signal_handler(int sig)
     }
 }
 
-// calloc with assert
-void *
-a_calloc(size_t nsize)
-{
-    void * tmp = calloc(1, nsize);
-    assert(tmp);
-    return tmp;
-}
+/*
+    Description :
+    1. Runs fuzz loop.
+    TODO
 
-// Runs fuzz loop
+    Return value : none
+*/
 void
 fuzz_loop()
 {
@@ -780,8 +887,6 @@ fuzz_loop()
         fprintf(stderr, "You must init first\n");
         exit(1);
     }
-
-    srand(time(0x0));
     
     signal(SIGALRM, signal_handler);
     
@@ -790,7 +895,7 @@ fuzz_loop()
         // Termination Condition
         // This is not exactly how much time we would like fuzzer to run.
         // This is timeout on total run_time of testing program.
-        if(g_result.exec_time >= g_config->timeout){
+        if(g_result.exec_time >= g_config->timeout || i == g_config->max_trial ){
             
             exit_protocol();
             exit(0);
@@ -803,7 +908,8 @@ fuzz_loop()
         // crate_rand_str could change when using mutabion-based fuzzing
         char *rand_str;
         int len;
-        char * seed_file;
+        int seed_ind;
+
         if(g_config->rnd_str_gen_type == T_RSG){
 
             rand_str = (char *) a_calloc(sizeof(char) * (g_config->in_configs.max_len + 1));
@@ -815,8 +921,8 @@ fuzz_loop()
             // TODO : How should I allocate sufficient amount of memory for random string input
             rand_str = (char *) a_calloc(sizeof(char) * (g_config->in_configs.max_len + 1 + g_config->in_configs.max_mutation * 4));
             
-            seed_file = seed_dequeue();
-            len = read_seed(rand_str, seed_file);
+            seed_ind = get_seed_ind();
+            len = read_seed_file(rand_str, seed_ind);
 #ifdef DEBUG
             printf("seed array : %s\n", rand_str);
 #endif
@@ -851,47 +957,39 @@ fuzz_loop()
         memset(out_buff, 0, g_config->tmp_buf_size);
         memset(err_buff, 0, g_config->tmp_buf_size);
 
-        if(g_config->fuzz_mode == M_SRC || g_config->fuzz_mode == M_COMPILED_BIN){
-            cov_info_t ** cov_info = (cov_info_t **)a_calloc(sizeof(cov_info_t*) * MAX_NUM_SRC);
-            for(int i = 0 ; i < MAX_NUM_SRC ; i++){
-                cov_info[i] = (cov_info_t *) a_calloc(sizeof(cov_info_t) * MAX_COVERAGE_LINE);
-            }
-
-            gcov_multiple(g_config->src_path, g_config->d_num_src_files, g_config->src_dir_path, cov_info); 
-                
-            
-            // Something is added to branch coverage
-            if(union_branch_cov(cov_info) > 0){
-                char new_seed_file[NAME_MAX];
-                
-                // make seed_file
-                printf(" *** add %s to seed *** \n", rand_str);
-                make_seed(rand_str, len, new_seed_file);
-
-                seed_enqueue(seed_file);
-                seed_enqueue(new_seed_file);
-            } else {
-                // TODO : If queue is full do not enqueue...?
-                // Deal with the old and useless seeds 
-                // If they are old, increase chaos level? 
-                seed_enqueue(seed_file);
-            }
-
-            free_N((void**)cov_info, MAX_NUM_SRC);
-        
-            // remove gcov file
-            for(int i = 0; i < g_config->d_num_src_files; i++){
-                if(remove_gcda(g_config->src_path[i]) != 0){
-                    fprintf(stderr, "Error in src_path. Src_path must have dot in it\n");
-                    exit(1);
-                }
-            }
-
-        } else if(g_config->fuzz_mode == M_BIN){
-            seed_enqueue(seed_file);
+       
+        cov_info_t ** cov_info = (cov_info_t **)a_calloc(sizeof(cov_info_t*) * MAX_NUM_SRC);
+        for(int i = 0 ; i < MAX_NUM_SRC ; i++){
+            cov_info[i] = (cov_info_t *) a_calloc(sizeof(cov_info_t) * MAX_COVERAGE_LINE);
         }
+
+        gcov_multiple(g_config->src_path, g_config->d_num_src_files, g_config->src_dir_path, cov_info); 
+        
+        // Something is added to branch coverage
+        if(union_branch_cov(cov_info) > 0){
+            char new_seed_file[NAME_MAX];
+            
+            // make seed_file
+            printf(" *** add %s to seed *** \n", rand_str);
+            make_seed_file(rand_str, len, g_seed_info.num_seed);
+            add_seed(1);
+        }
+
+        free_N((void**)cov_info, MAX_NUM_SRC);
+    
+        char abs_file_path[PATH_MAX+3];
+        // remove gcov file
+        for(int i = 0; i < g_config->d_num_src_files; i++){
+            sprintf(abs_file_path, "%s/%s", g_config->src_dir_path, g_config->src_path[i]);
+            // printf();
+            if(remove_gcda(abs_file_path) != 0){
+                fprintf(stderr, "Error in src_path.\n");
+                exit(1);
+            }
+        }
+
         free(rand_str);
-        print_result();
+        // print_result();
     }
 
     // Print result pretty

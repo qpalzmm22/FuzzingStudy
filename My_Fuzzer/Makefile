@@ -30,4 +30,4 @@ url_parser_tester : src/fuzz_input_maker.c target/URL_parser/http_program.c test
 	gcc -o bin/url_parser_tester src/fuzz_input_maker.c target/URL_parser/http_program.c test/url_parser_tester.c
 
 clean : 
-	rm -r bin/* tmp* ./*.c a.out seed_corpus/seed_* 2> /dev/null
+	rm -r bin/* tmp* ./*.c a.out seed_corpus/seed_*

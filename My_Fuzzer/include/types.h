@@ -1,8 +1,8 @@
 #ifndef _HAVE_TYPES_H_
 #define _HAVE_TYPES_H_
 
-#define MAX_COVERAGE_LINE 512
-#define MAX_BRANCH 128
+#define MAX_COVERAGE_LINE 1024
+#define MAX_BRANCH 64
 
 #define MAX_SEED_FILES 1024
 #define MAX_NUM_SRC 100
@@ -39,12 +39,18 @@ typedef struct _in_config{
     int max_mutation ;
 }in_config_t;
 
+
 typedef struct _queue{
     int size ;
     int front ;
     int rear ;
     char queue[MAX_SEED_FILES][NAME_MAX] ;
 }queue_t;
+
+typedef struct seed_info_t{
+    int num_seed ;
+    double weight[MAX_SEED_FILES] ; // weight inforamtion is stored
+}seed_info_t;
 
 
 typedef struct _config{
@@ -77,7 +83,7 @@ typedef struct _config{
     // d_ for system defining variables
     int d_num_src_files; 
     
-    // get c_files number from init 
+    // get c_files number from init w
     // char c_files[MAX_C_FILES][PATH_MAX];
 
     // input, output, error data path
@@ -102,7 +108,7 @@ typedef struct _config{
     int hang_timeout ; // timeout by seconds
 
     int (*oracle)(int, char*, int, char*, char*) ;
-} config_t, *pConfig_t ;
+} config_t, *     pConfig_t ;
 
 typedef struct _branch_info{
     int line_num; // line number of the branch containing line
