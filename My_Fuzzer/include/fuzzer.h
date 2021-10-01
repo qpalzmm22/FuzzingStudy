@@ -2,11 +2,15 @@
 #ifndef _HAVE_FUZZER_H_
 #define _HAVE_FUZZER_H_
 
+#define MAX_LOG_LEN 1024
+
 #include "types.h"
 #include "config.h"
 #include "fuzz_input_maker.h"
 #include "gcov_creater.h"
 #include "coverage_calculator.h"
+#include "utility.h"
+#include "power_schedule.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,14 +24,7 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 
-char *create_tmp_dirs();
-
-void * a_calloc(size_t nsize);
-
-int my_fwrite(void * ptr, int n, FILE * stream);
-int my_fread(void * ptr, int n, FILE * stream);
-
-int get_rand_seed(char * rand_str);
+char * create_tmp_dirs();
 
 int union_branch_cov(cov_info_t ** pp_cov_info);
 
@@ -40,7 +37,7 @@ int default_oracle(int exit_code, char* input, int input_len, char* stdout_buff,
 void init_fuzzer(pConfig_t config);
 
 void signal_handler(int sig);
-void fuzz_loop();
+void fuzz_main(pConfig_t config);
 
 
 #endif /* !_HAVE_FUZZER_H_ */

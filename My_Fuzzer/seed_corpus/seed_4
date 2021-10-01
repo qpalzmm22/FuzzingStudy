@@ -11,10 +11,10 @@
         "name": "sun1",
         "hOffset": 250,
         "vOffset": 250,
-        "alignment": "center"
+        "aÿÿÿÿment": "center"
     },
     "text": {
-        "data": "Click Here",
+        "data"€ÿ: "Click Here",
         "size": 36,
         "style": "bold",
         "name": "text1",

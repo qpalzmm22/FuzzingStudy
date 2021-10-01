@@ -1,5 +1,5 @@
 1111{"widget": {
-    "debug": "on",
+    "debug": ,
     "window": {
         "title": "Sample Konfabulator Widget",
         "name": "main_window",

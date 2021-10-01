@@ -15,7 +15,7 @@
     },
     "text": {
         "data": "Click Here",
-        "size": 36,
+        "+\bb": 36,
         "style": "bold",
         "name": "text1",
         "hOffset": 250,
