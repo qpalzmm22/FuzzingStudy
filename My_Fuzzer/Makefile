@@ -1,33 +1,44 @@
-all : fuzzer psudo_troff test_p_troff
+CC=gcc
 
-fuzzer : src/fuzzer.c src/fuzz_input_maker.c test/cat_tester.c 
-	gcc -o bin/fuzzer src/fuzzer.c src/fuzz_input_maker.c test/cat_tester.c test/cat_oracle.c
+CFILES=src/fuzzer.c
+CFILES+=src/fuzz_input_maker.c
+CFILES+=src/gcov_creater.c
+CFILES+=src/coverage_calculator.c
+CFILES+=src/utility.c
+CFILES+=src/power_schedule.c
 
-test_p_troff: src/fuzzer.c src/fuzz_input_maker.c src/gcov_creater.c src/coverage_calculator.c target/psudo_troff/psudo_troff_tester.c
-	gcc -o bin/test_p_troff src/fuzzer.c src/fuzz_input_maker.c target/psudo_troff/psudo_troff_tester.c src/gcov_creater.c src/coverage_calculator.c
+OUTBIN=fuzzer
 
-fuzzer_w_coverage : src/fuzzer.c src/fuzz_input_maker.c src/gcov_creater.c src/coverage_calculator.c test/cgi_decoder_tester.c  
-	gcc -o bin/fuzzer_w_coverage src/fuzzer.c src/fuzz_input_maker.c src/gcov_creater.c src/coverage_calculator.c test/cgi_decoder_tester.c
-
+all : fuzz_cjson_mut fuzz_cjson_rand
+module_test : test_fuzz_input_maker test_gcov_creater test_coverage_calculator test_power_schedule
 
 # MODULE TESTER BUILDS
 # Enable Debug in the source code to test each
 test_fuzz_input_maker : src/fuzz_input_maker.c
-	gcc -o bin/fuzz_input_maker src/fuzz_input_maker.c
+	$(CC) -o bin/fuzz_input_maker src/fuzz_input_maker.c
 
 test_gcov_creater : src/gcov_creater.c
-	gcc -o bin/gcov_creater src/gcov_creater.c
+	$(CC) -o bin/gcov_creater src/gcov_creater.c
 
 test_coverage_calculator : src/coverage_calculator.c src/gcov_creater.c
-	gcc -o bin/coverage_calculator src/coverage_calculator.c src/gcov_creater.c
+	$(CC) -o bin/coverage_calculator src/coverage_calculator.c src/gcov_creater.c
+
+test_power_schedule : src/power_schedule.c src/utility.c
+	$(CC) -o bin/power_schedule src/power_schedule.c src/utility.c
 
 # MODULE TESTER BUILDS END
 
-fuzz_url_parser :  src/fuzzer.c src/fuzz_input_maker.c src/gcov_creater.c src/coverage_calculator.c test/url_fuzzer_tester.c
-	gcc -o bin/fuzz_url_parser src/fuzzer.c src/fuzz_input_maker.c src/gcov_creater.c src/coverage_calculator.c test/url_fuzzer_tester.c
+#fuzz_url_parser : $(CFILES)
+#	$(CC) -o bin/fuzz_url_parser $(CFILES)
 
-url_parser_tester : src/fuzz_input_maker.c target/URL_parser/http_program.c test/url_parser_tester.c
-	gcc -o bin/url_parser_tester src/fuzz_input_maker.c target/URL_parser/http_program.c test/url_parser_tester.c
+#url_parser_tester : $(CFILES)
+#	$(CC) -o bin/url_parser_tester $(CFILES)
+	
+fuzz_cjson_mut : $(CFILES) test/cjson_fuzzer_mut_driver.c 
+	$(CC) -o bin/fuzz_cjson_mut $(CFILES) test/cjson_fuzzer_mut_driver.c
+	
+fuzz_cjson_rand : $(CFILES) test/cjson_fuzzer_rand_driver.c 
+	$(CC) -o bin/fuzz_cjson_rand $(CFILES) test/cjson_fuzzer_rand_driver.c
 
 clean : 
-	rm -r bin/* tmp* ./*.c a.out seed_corpus/seed_* 2> /dev/null
+	rm -r bin/* tmp* ./*.c a.out 

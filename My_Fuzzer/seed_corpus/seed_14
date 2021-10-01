@@ -1,7 +1,7 @@
 1111{"widget": {
     "debug": "on",
     "window": {
-        "title": "Sample Konfabulator Widget",
+        "title": "Sample Konfabula.\r Widget",
         "name": "main_window",
         "width": 500,
         "height": 500

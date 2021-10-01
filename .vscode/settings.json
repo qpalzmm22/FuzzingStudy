@@ -17,7 +17,8 @@
         "coverage_calculator.h": "c",
         "ctype.h": "c",
         "gcov_creater.h": "c",
-        "http_program.h": "c"
+        "http_program.h": "c",
+        "typeinfo": "c"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

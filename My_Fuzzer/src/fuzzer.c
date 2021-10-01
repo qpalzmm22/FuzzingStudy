@@ -1,6 +1,5 @@
 #include "../include/fuzzer.h"
 
-
 #define READEND 0
 #define WRITEEND 1
 
@@ -10,9 +9,17 @@ static pConfig_t g_config;
 static result_t g_result;
 static pid_t g_pid;
 static int g_itr;
-static int g_seed_name_itr;
+static seed_info_t g_seed_info;
+clock_t g_loop_start;
 
-// TODO : template
+/*
+    Description : 
+    Using 'mkdtemp', creates randomly named folder 
+    and create folders named "inputs/", "outputs/", "errors/".
+
+    Return value : 
+    Retunrs randomly created name of the folder
+*/
 char * 
 create_tmp_dirs()
 {
@@ -51,31 +58,13 @@ create_tmp_dirs()
 }
 
 
-int
-my_fwrite(void * ptr, int n, FILE * stream)
-{
-	int sent = 0;
-
-	while(sent < n){
-		sent += fwrite(ptr + sent, 1, n - sent, stream);
-	}
-
-	return sent;
-}
-
-// fread() safe version
-int
-my_fread(void * ptr, int n, FILE * stream)
-{
-	int received = 0;
-
-	while(received < n){
-		received += fread(ptr + received , 1, n - received, stream);
-	}
-
-	return received;
-}
-
+/*
+    Description : 
+    make input files with string of `str` with length of `len` on `in_data_path` path.
+    
+    Return value :
+    None 
+*/
 void
 make_input_files(char* str, int len, char *in_data_path)
 {
@@ -91,6 +80,11 @@ make_input_files(char* str, int len, char *in_data_path)
     fclose(fp);
 }
 
+/*
+    Description : 
+    
+    Return value : 
+*/
 int
 exec_process(char * str, int len, int itr, char *out_buff, char *err_buff)
 {
@@ -152,6 +146,7 @@ exec_process(char * str, int len, int itr, char *out_buff, char *err_buff)
                 g_config->prog_argv =  (char**)realloc(argv, (g_config->prog_argc + 1) * sizeof(char*)) ;
                 assert(argv) ;
                 argv[g_config->prog_argc] = 0x0 ;
+                printf("argc : %d\n",g_config->prog_argc );
 
             } else {
                 fprintf(stderr, "Error on exec_mode");
@@ -187,11 +182,20 @@ exec_process(char * str, int len, int itr, char *out_buff, char *err_buff)
 			sprintf(out_file_name, "%s%s%d", dir_path, "/outputs/output", itr);
 			sprintf(err_file_name, "%s%s%d", dir_path, "/errors/error", itr);
 
-			FILE *fp =  fopen(out_file_name, "wb");
-			if(fp == 0){
-				perror("ERROR in opening output file");
-				exit(1);
-			}
+            FILE *out_fp, *err_fp;
+            if(g_config->make_out){
+                out_fp =  fopen(out_file_name, "wb");
+                if(out_fp == 0){
+                    perror("ERROR in opening output file");
+                    exit(1);
+                }
+
+                err_fp =  fopen(err_file_name, "wb");
+                if(err_fp == 0){
+                    perror("ERROR in opening error file");
+                    exit(1);
+                }
+            } 
 
 			char out_tmp_buff[buf_size];
             int s;
@@ -203,18 +207,12 @@ exec_process(char * str, int len, int itr, char *out_buff, char *err_buff)
                 }
                 read_bytes += s;
 
-				if(fwrite(out_tmp_buff, 1, s, fp) < s){
-					fprintf(stderr, "Error in making out files\n");
-				}
-			}
-			
-			close(pipe_out[READEND]);
-			fclose(fp);
 
-			fp =  fopen(err_file_name, "wb");
-			if(fp == 0){
-				perror("ERROR in opening error file");
-				exit(1);
+                if(g_config->make_out){
+                    if(fwrite(out_tmp_buff, 1, s, out_fp) < s){
+                        fprintf(stderr, "Error in making out files\n");
+                    }
+                }
 			}
 
 			char err_tmp_buff[buf_size];
@@ -227,135 +225,36 @@ exec_process(char * str, int len, int itr, char *out_buff, char *err_buff)
                 }
                 read_bytes += s;
 
-				if(fwrite(err_tmp_buff, 1, s, fp) < s){
-					fprintf(stderr, "Error in making err files\n");
-				}
+                if(g_config->make_out){
+                    if(fwrite(err_tmp_buff, 1, s, err_fp) < s){
+                        fprintf(stderr, "Error in making err files\n");
+                    }
+                }
 			}
-			
-			fclose(fp);
+            if(g_config->make_out){
+                fclose(out_fp);
+                fclose(err_fp);
+            }
+
+            close(pipe_out[READEND]);
 			close(pipe_err[READEND]);
+
             return ret_code;
     }
 
 }
 
-void
-seed_enqueue(char * seed_file)
-{
-    if(g_config->seed_queue.size + 1 == MAX_SEED_FILES){
-        fprintf(stderr, "Queue is full\n");
-        return;
-    }
-    g_config->seed_queue.size++;
-    
-    // if(g_config->seed_queue.size == 1){
-    //     g_config->seed_queue.front = g_config->seed_queue.rear;
-    // }
 
-    // TODO : vulnerable?
-    strcpy(g_config->seed_queue.queue[g_config->seed_queue.rear], seed_file);
-    g_config->seed_queue.rear = (g_config->seed_queue.rear + 1) % MAX_SEED_FILES;
+/*
+    Description : 
+    Search files with name of "seed_n" where n is `seed_ind` and return its content to buf. 
 
-}
+    Expectation : 
+    The buf must be big enough to hold contents from seed file.
 
-
-// Dequeues a seed from seed queue.
-char*
-seed_dequeue()
-{
-    char* seed;
-    if(g_config->seed_queue.size == 0){
-        fprintf(stderr, "No seed in the queue\n");
-        return 0x0;
-    }
-    g_config->seed_queue.size--;
-
-    seed = g_config->seed_queue.queue[g_config->seed_queue.front];
-    if(g_config->seed_queue.size == 0){
-        g_config->seed_queue.front = -1;
-    } else {
-        g_config->seed_queue.front = (g_config->seed_queue.front + 1) % MAX_SEED_FILES;
-    }
-    return seed;
-}
-
-
-// g_config->seed_queue.queue must be freed
-void
-seed_init()
-{
-    g_config->seed_queue.front = 0;
-    g_config->seed_queue.rear = 0;
-    g_config->seed_queue.size = 0;
-
-    DIR * dfd;
-
-    if((dfd = opendir(g_config->seed_path)) == 0x0){
-        perror("Error on opening seed_path dir");
-        exit(1);
-    }
-
-    int num_seed_files = 0;
-    struct dirent *dp;
-    while ((dp = readdir(dfd)) != NULL){
-        if(dp->d_type != DT_REG)
-            continue;
-        seed_enqueue(dp->d_name);
-    }
-}
-
-char *
-make_seed(char * str, int len, char* seed_file)
-{
-    char seed_path[PATH_MAX + NAME_MAX];
-
-    sprintf(seed_file, "seed_%d", g_seed_name_itr++);
-    sprintf(seed_path,"%s/%s",g_config->seed_path, seed_file);
-
-    FILE * fp;
-
-    if((fp = fopen(seed_path, "w")) == NULL){
-        perror("Error in opening seed file");
-        exit(1);
-    }
-
-    if(my_fwrite(str, len, fp) != len){
-        fprintf(stderr, "Error in my_writing seed file\n");
-    }
-
-    fclose(fp);
-
-    return seed_file;
-}
-
-int 
-read_seed(char* buf, char *seed_file)
-{
-    char seed_path[PATH_MAX + NAME_MAX];
-    
-    sprintf(seed_path, "%s/%s",g_config->seed_path, seed_file);
-    FILE * fp;
-
-    if((fp = fopen(seed_path, "r")) == NULL){
-        perror("Error in opening seed file");
-        exit(1);
-    }
-
-    int received = 0;
-    int tmp;
-
-    while((tmp = fread(buf, 1, g_config->in_configs.max_len + 1 + g_config->in_configs.max_mutation, fp)) != 0){
-        received += tmp;
-    }
-    buf[received] = 0x0;
-
-    fclose(fp);
-
-    return received;
-}
-
-// g_config->prog_argv
-// strcpy? can't touch prog_args...
+    Return value : 
+    Length of the returned seed.
+*/
 void
 make_argv()
 {
@@ -387,8 +286,14 @@ make_argv()
     g_config->prog_argc = argc ;
 }   
 
-// Returns 1 if return code is 0.
-// TODO : How to make a generic oracle?? 
+/*
+    Description : 
+    Fuzzer will automactically use this oracle if no oracle was given by user.
+    This oracle examines return code and consider it as bug if the return code was not 0
+    
+    Return value : 
+    0 for no bug, 1 for bug.
+*/
 int
 default_oracle(int exit_code, char* input, int input_len, char* stdout_buff, char* stderr_buff)
 {
@@ -398,39 +303,22 @@ default_oracle(int exit_code, char* input, int input_len, char* stdout_buff, cha
         return 1;
 }
 
-// Sets and check the inputs, change so that it recieve pointer to config_t 
+/*
+    Description : 
+    This function will set default values.
+    This valeus are defined in config.h
+
+    Return value : 
+    None. input, `config` will be set to default
+*/
 void
 init_fuzzer(pConfig_t config)
 {
-    char real_path[PATH_MAX] ;
-
-    if(config == 0x0){
-        fprintf(stderr, "You must pass valid config\n");
-        exit(1);
-    }
-    g_config = config;
-
-
     if (RSG_TYPE != T_RSG && RSG_TYPE != T_MUT){
         fprintf(stderr, "RSG_TYPE must be between 0 ~ 1. 0 for randomly generated strings, 1 for Mutant based strings\n") ;
         exit(1) ;
     }
-    g_config->rnd_str_gen_type = RSG_TYPE ;
-    
-    if(g_config->rnd_str_gen_type == T_MUT){
-        if( realpath(SEED_PATH, real_path ) == NULL) {
-            perror("Error on finding seed directory") ; 
-            exit(1);
-        } else if( access( real_path, R_OK ) == 0 ) {
-            strcpy(g_config->seed_path, real_path) ;
-        } else {
-            perror("Can't access the seed directory") ;
-            exit(1);
-        }
-
-        seed_init();
-    }
-
+    config->rsg_type = RSG_TYPE ;
 
     // in_config check
     if( MIN_LEN < 0 || MAX_LEN < 0 ){
@@ -447,49 +335,38 @@ init_fuzzer(pConfig_t config)
     }
 
     // random && mutation based string generator
-    g_config->in_configs.min_len = MIN_LEN ;
-    g_config->in_configs.max_len = MAX_LEN ;
-    g_config->in_configs.ch_start = CH_START ;
-    g_config->in_configs.ch_range = CH_RANGE ;
+    config->in_configs.min_len = MIN_LEN ;
+    config->in_configs.max_len = MAX_LEN ;
+    config->in_configs.ch_start = CH_START ;
+    config->in_configs.ch_range = CH_RANGE ;
 
-    g_config->in_configs.max_mutation = MAX_MUTATION;
-
-
-    // Gets argvs
-    // g_config->args needs to be freed;
-    make_argv() ;
-
-    char * tmp = create_tmp_dirs() ;
-    strcpy(g_config->data_path, tmp) ;
-    free(tmp) ;
+    config->in_configs.max_mutation = MAX_MUTATION;
     
-    // command line g_config
-    if(EXEC_MODE != M_STDIN && EXEC_MODE != M_ARG && EXEC_MODE != M_FILE){
-        fprintf(stderr, "EXEC_MODE must be between 0 ~ 2") ;
-        exit(1) ;
-    }
-	g_config->exec_mode = EXEC_MODE;  // 0 = M_STDIN, 1 = ARG, 2 = M_FILe
 
     // Pipe buffer size
     if(TMP_MAX_SIZE <= 0 ){
         fprintf(stderr, "TMP_MAX_SIZE must be greater than 0") ;
         exit(1) ;
     }
-    g_config->tmp_buf_size = TMP_MAX_SIZE;
+    config->tmp_buf_size = TMP_MAX_SIZE;
 
-    // Exec
+    // ----------------------- Path ---------------------------------/
+    strcpy(config->seed_path, SEED_PATH) ;
+    strcpy(config->src_dir_path, SRC_DIR_PATH) ;
+    strcpy(config->prog_path, PROG_PATH) ;
+
+    // ----------------------- Termination Condition  ---------------------------------/
     if(MAX_TRIALS < 0){
         fprintf(stderr, "TRIALS must be 0 or greater") ;
         exit(1) ;
     }
-    g_config->max_trial = MAX_TRIALS ; 
-
+    config->max_trial = MAX_TRIALS ; 
 
     if(TIMEOUT < 0){
         fprintf(stderr, "TIMEOUT must be 0 or greater than 0");
         exit(1);
     }
-    g_config->timeout = TIMEOUT ; // timeout by seconds
+    config->timeout = TIMEOUT ; // timeout by seconds
 
 
 #ifdef HANG_TIMEOUT
@@ -499,36 +376,93 @@ init_fuzzer(pConfig_t config)
         fprintf(stderr, "HANG_TIMEOUT must be 0 or greater than 0");
         exit(1);
     }
-    g_config->hang_timeout = HANG_TIMEOUT;
+    config->hang_timeout = HANG_TIMEOUT;
 
 #endif /* HANG_TIMEOUT */ 
 
     // Q. How to check the integrity of function address?
-    if(g_config->oracle == 0x0)
-        g_config->oracle = ORACLE;
+    if(config->oracle == 0x0)
+        config->oracle = ORACLE;
 
-    // --------------------- Other settings --------------------
-
-    signal(SIGINT, signal_handler);
-
-    // ---------------------- Coverage -------------------------
+    // ----------------------- Modes ---------------------------------/
+    if(EXEC_MODE != M_STDIN && EXEC_MODE != M_ARG && EXEC_MODE != M_FILE){
+        fprintf(stderr, "EXEC_MODE must be between 0 ~ 2") ;
+        exit(1) ;
+    }
+	config->exec_mode = EXEC_MODE;  // 0 = M_STDIN, 1 = ARG, 2 = M_FILe
 
     if(FUZZ_MODE != M_SRC && FUZZ_MODE != M_BIN && FUZZ_MODE != M_COMPILED_BIN){
         fprintf(stderr, "FUZZ_MODE must be set. 0 for src mode, 1 for bin mode, 2 for precompiled mode(with --coverage)\n");
         exit(1);
     }
-    g_config->fuzz_mode = FUZZ_MODE; 
+    config->fuzz_mode = FUZZ_MODE; 
+
+    if(COV_MODE != M_LINE && COV_MODE != M_BRANCH){
+        fprintf(stderr, "COV_MODE must be set. 0 for line mode, 1 for branch mode\n");
+        exit(1);
+    }
+    config->coverage_mode = COV_MODE;
+
+    config->make_out = DEFAULT_MAKE_OUT;
+}
+
+/*
+    Description : 
+    Fuzzer will set with `config` settings.
+    It will check the validity of the config and cause an error if there is one.
+
+    Return value : 
+   
+*/
+void
+set_config(pConfig_t config){
+    
+    srand(time(NULL));
+
+    char real_path[PATH_MAX] ;
+
+    if(config == 0x0){
+        fprintf(stderr, "You must pass valid config\n");
+        exit(1);
+    }
+    g_config = config;
+
+    g_seed_info.num_seed = 0;
+    seed_init(&g_seed_info, g_config->seed_path);
+
+    // Gets argvs
+    // g_config->args needs to be freed;
+    make_argv() ;
+
+    char * tmp = create_tmp_dirs() ;
+    strcpy(g_config->data_path, tmp) ;
+    free(tmp) ;
+
+    if(g_config->rsg_type == T_MUT){
+        if( realpath(g_config->seed_path, real_path ) == NULL) {
+            perror("Error on finding seed directory") ; 
+            exit(1);
+        } else if( access( real_path, R_OK ) == 0 ) {
+            strcpy(g_config->seed_path, real_path) ;
+        } else {
+            perror("Can't access the seed directory") ;
+            exit(1);
+        }
+    }
+
+    // --------------------- Other settings --------------------
+
+    signal(SIGINT, signal_handler);
 
     // --------------------- source -------------------------//
 
-    // Is it needed for one source file??
     g_config->src_path = (char **) a_calloc(sizeof(char*) * MAX_NUM_SRC);
     for(int i = 0 ; i < MAX_NUM_SRC ; i++){
         g_config->src_path[i] = (char*) a_calloc(sizeof(char) * NAME_MAX);
     }
 
     if(g_config->fuzz_mode == M_BIN){
-        if( realpath(PROG_PATH, real_path ) == NULL) {
+        if( realpath(g_config->prog_path, real_path ) == NULL) {
             perror("Error on finding program") ; 
             exit(1);
         } else if( access( real_path, X_OK ) == 0 ) {
@@ -536,76 +470,29 @@ init_fuzzer(pConfig_t config)
         } else {
             perror("Can't access the program") ;
             exit(1);
-        }   
-    } else if(g_config->fuzz_mode == M_SRC){
+        }
+    } else if(g_config->fuzz_mode == M_COMPILED_BIN){
+        if( realpath(g_config->prog_path, real_path ) == NULL) {
+            perror("Error on finding program") ; 
+            exit(1);
+        } else if( access( real_path, X_OK ) == 0 ) {
+            strcpy(g_config->prog_path, real_path) ;
+        } else {
+            perror("Can't access the program") ;
+            exit(1);
+        }
 
-        if( realpath(SRC_PATH, real_path ) == NULL) {
-            perror("Error on finding source code") ; 
+        if( realpath(g_config->src_dir_path, real_path ) == NULL) {
+            perror("Error on finding program") ; 
             exit(1);
         } else if( access( real_path, R_OK ) == 0 ) {
-            strcpy(g_config->src_path[0], real_path) ;
-        } else {
-            perror("Can't access the source code") ;
-            exit(1);
-        } 
-
-        if(COV_MODE != M_LINE && COV_MODE != M_BRANCH){
-            fprintf(stderr, "COV_MODE must be set. 0 for line mode, 1 for branch mode\n");
-            exit(1);
-        }
-        g_config->coverage_mode = COV_MODE;
-
-        char * tmp = get_bin_path(g_config->src_path[0]);
-        if(tmp == 0x0){
-            fprintf(stderr, "Error in getting bin path of the source code");
-            exit(1);
-        }
-        strcpy(g_config->prog_path, tmp) ;
-        free(tmp);
-
-        exec_gcc_coverage(g_config->src_path[0], g_config->prog_path);
-
-    } else if(g_config->fuzz_mode == M_COMPILED_BIN){
-        if( realpath(PROG_PATH, real_path ) == NULL) {
-            perror("Error on finding program") ; 
-            exit(1);
-        } else if( access( real_path, X_OK ) == 0 ) {
-            strcpy(g_config->prog_path, real_path) ;
+            strcpy(g_config->src_dir_path, real_path) ;
         } else {
             perror("Can't access the program") ;
             exit(1);
         }
-
-        if(SRC_PATH == 0x0){
-            if( realpath(SRC_DIR_PATH, real_path ) == NULL) {
-                perror("Error on finding program") ; 
-                exit(1);
-            } else if( access( real_path, R_OK ) == 0 ) {
-                strcpy(g_config->src_dir_path, real_path) ;
-            } else {
-                perror("Can't access the program") ;
-                exit(1);
-            }
-            g_config->d_num_src_files = get_file_names(g_config->src_dir_path, g_config->src_path);
-        } else {
-            g_config->d_num_src_files = 1;
-            if( realpath(SRC_PATH, real_path ) == NULL) {
-                perror("Error on finding source code") ; 
-                exit(1);
-            } else if( access( real_path, R_OK ) == 0 ) {
-                strcpy(g_config->src_path[0], real_path) ;
-            } else {
-                perror("Can't access the source code") ;
-                exit(1);
-            }
-        }
-        // TODO : Change to array
-
-        if(COV_MODE != M_LINE && COV_MODE != M_BRANCH){
-            fprintf(stderr, "COV_MODE must be set. 0 for line mode, 1 for branch mode\n");
-            exit(1);
-        }
-        g_config->coverage_mode = COV_MODE;
+        g_config->d_num_src_files = get_file_names(g_config->src_dir_path, g_config->src_path);
+       
     } 
 
     // --------------------- 
@@ -613,9 +500,7 @@ init_fuzzer(pConfig_t config)
     // if src_file_path exists, it's sigle file.
     //  Else it's multiple file
 
-
     // --------------------- Initialize g_results----------------
-    g_seed_name_itr = 0;
 
 
     // It's useless since it's declared global?
@@ -628,7 +513,7 @@ init_fuzzer(pConfig_t config)
     g_result.tot_branches_covered = 0;
     
 
-    g_result.cov_set = (int **) a_calloc(MAX_NUM_SRC * sizeof(int*));
+    g_result.cov_set = (int **) a_calloc(g_config->d_num_src_files * sizeof(int*));
 
     for(int i = 0; i < MAX_NUM_SRC; i++){
         g_result.cov_set[i] = (int *) a_calloc(MAX_COVERAGE_LINE * sizeof(int));
@@ -643,6 +528,19 @@ init_fuzzer(pConfig_t config)
 
 }
 
+
+/*
+    Description : 
+    Union coverage information for g_result.pp_union_cov with input, `pp_cov_info`
+    While at it, it also continuously copies the other infomation 
+    like number of brances or number of bracnches covered
+
+    Expectation : 
+
+    Return value : 
+    Return 1 if union has made change to original set
+    Return 0 if not.
+*/
 int
 union_branch_cov(cov_info_t ** pp_cov_info)
 {
@@ -661,9 +559,9 @@ union_branch_cov(cov_info_t ** pp_cov_info)
             for(int k = 0 ; k < pp_cov_info[i]->b_infos[j].num_branch; k++){
                 if(g_result.pp_union_cov[i]->b_infos[j].runs[k] == 0 && pp_cov_info[i]->b_infos[j].runs[k] != 0){
                     g_result.pp_union_cov[i]->tot_branches_covered++;
+                    g_result.pp_union_cov[i]->b_infos[j].runs[k] += pp_cov_info[i]->b_infos[j].runs[k];
                     inc_flag = 1;
                 }
-                g_result.pp_union_cov[i]->b_infos[j].runs[k] += pp_cov_info[i]->b_infos[j].runs[k];
             }
             
         }
@@ -675,6 +573,51 @@ union_branch_cov(cov_info_t ** pp_cov_info)
 }
 
 
+/*
+    Description : 
+    Makes a log of fuzzing result. 
+    The log file is created to `log_dir_path`.
+    The log will be made in format of " trials, total branch covered " in csv format 
+
+    Expectation : 
+
+    Return value : 
+    None
+*/
+void
+write_log(char * log_dir_path)
+{
+    char log[MAX_LOG_LEN];
+    char log_path[PATH_MAX];
+
+    clock_t end = clock();
+
+    double time = ((double) end - g_loop_start) / CLOCKS_PER_SEC ;
+    
+    sprintf(log, "%d, %d, %f\n", g_itr, g_result.tot_branches_covered, time);
+    sprintf(log_path, "%s/log.csv", log_dir_path); 
+
+    FILE * fp ;
+    if((fp = fopen(log_path, "a+")) == 0x0){
+        perror("Error in fopen in make_log_result.");
+        exit(1);
+    }
+    fputs(log, fp);
+ 
+    fclose(fp);
+}
+
+
+/*
+    Description : 
+    Print result of fuzzing
+
+    Expectation : 
+
+    Return value : 
+    None
+
+*/
 void 
 print_result()
 {
@@ -693,6 +636,8 @@ print_result()
     }
     printf("=                   Output Path : %70s            =\n", g_config->data_path);
     printf("=                    Test Cases : %70d            =\n", g_result.tot_test_cases);
+    printf("=   Total Test Time(in seconds) : %70.3f            =\n", g_result.loop_time);
+    printf("=   Avg. Test Time(in mseconds) : %70.3f            =\n", g_result.loop_time / g_result.tot_test_cases * 1000);
     printf("=  Total Exec. Time(in seconds) : %70.3f            =\n", g_result.exec_time);
     printf("=  Avg. Exec. Time(in mseconds) : %70.3f            =\n", g_result.exec_time / g_result.tot_test_cases * 1000);
     printf("= ---------------------------------------------------- BUG STATS -------------------------------------------------- =\n");
@@ -702,43 +647,52 @@ print_result()
     
     if(g_config->fuzz_mode == M_SRC || g_config->fuzz_mode == M_COMPILED_BIN){
         printf("= ---------------------------------------------------- COVERAGE --------------------------------------------------- =\n");
-        if(g_config->coverage_mode == M_LINE){
+        printf("=               Branch Coverage : %70.3f %%          =\n", ((double)g_result.tot_branches_covered) * 100 / g_result.tot_branches);
+        printf("=                                                                                                                   =\n");
+        for(int i = 0 ; i < g_config->d_num_src_files; i++){
+            printf("=                      File [%d] : %70s            =\n", i, g_config->src_path[i]);
+            printf("               Total Branch (%%) : %55d / %d (%.4f %%)          \n",  g_result.pp_union_cov[i]->tot_branches_covered, g_result.pp_union_cov[i]->tot_branches,((double) g_result.pp_union_cov[i]->tot_branches_covered) * 100 / g_result.pp_union_cov[i]->tot_branches);
+            printf("=                                                                                                                   =\n");    
+                
+            if(PRINT_BRANCH){
+                printf("=                                                                                                                   =\n");    
+                        
+                for(int j = 0; j < g_result.pp_union_cov[i]->tot_branches; j++){
+                    
+                    b_info_t branch_info = g_result.pp_union_cov[i]->b_infos[j];
+                    
+                    if(branch_info.num_branch == 0 ) continue;
+
+                    for(int k = 0; k < branch_info.num_branch; k++){
+                        printf("=   Branch Line [ %10d ] ::   :: Branch [ %2d ] => %40d    %3.f %%           =\n", branch_info.line_num, k, branch_info.runs[k], (double)branch_info.runs[k] / g_result.tot_test_cases);
+                    }
+                    printf("=                                                                                                                   =\n");
+                } 
+            }
+
             
-            
-        //     printf("=           Total lines covered : %70d            =\n", g_result.tot_line_covered);
-        //     for(int i = 0; i < MAX_COVERAGE_LINE; i++){
-        //         if(g_result.cov_set[i] > 0)
-        //             printf("=            covered line [ %2d ] : %70d            =\n", i, g_result.cov_set[i]);
-        //     }
-        } else if( g_config->coverage_mode == M_BRANCH){
-            //calc_covered_branches();
-            printf("=               Branch Coverage : %70.3f %%          =\n", ((double)g_result.tot_branches_covered) * 100 / g_result.tot_branches);
-            printf("=                                                                                                                   =\n");
-            for(int i = 0 ; i < g_config->d_num_src_files; i++){
-                printf("=                      File [%d] : %70s            =\n", i, g_config->src_path[i]);
-                printf("=                         +---- : %70.5f %%          =\n", ((double) g_result.pp_union_cov[i]->tot_branches_covered) * 100 / g_result.pp_union_cov[i]->tot_branches);
-                printf("=                                                                                                                   =\n");
-                if(PRINT_BRANCH){
-                    for(int j = 0; j < g_result.pp_union_cov[i]->tot_branches; j++){
-                        b_info_t branch_info = g_result.pp_union_cov[i]->b_infos[j];
-                        for(int k = 0; k < branch_info.num_branch; k++){
-                            printf("=   Branch Line [ %10d ] ::   :: Branch [ %2d ] => %40d    %3.f %%           =\n", branch_info.line_num, k, branch_info.runs[k], (double)branch_info.runs[k] / g_result.tot_test_cases);
-                        }
-                        printf("=                                                                                                                   =\n");
-                    } 
-                }
-            } 
-        }
+        } 
     } 
     printf("=====================================================================================================================\n");
     printf("\n\n");
 }
 
+/*
+    Description :
+    Ends time loop
+    print result
+    and frees all the stuffs
+
+    Return value : none
+*/
 void
 exit_protocol()
 {
-    print_result();
+    clock_t loop_end = clock();
+    g_result.loop_time = (double)(loop_end - g_loop_start) / CLOCKS_PER_SEC;
 
+    print_result();
+    
     for(int i = 0 ; i < g_config->d_num_src_files; i++){
         free(g_result.pp_union_cov[i]);
     }
@@ -748,6 +702,13 @@ exit_protocol()
     free(g_config->prog_argv);
 }
 
+/*
+    Description :
+    When signal() is called, this function will run.
+    Depending on the signal, it will whether teminate child process orexit the program
+
+    Return value : none
+*/
 void
 signal_handler(int sig)
 {
@@ -757,66 +718,68 @@ signal_handler(int sig)
         kill(g_pid, SIGKILL);
     }
     if(sig == SIGINT){ 
-        print_result();
+        exit_protocol();
         // Do we need to free? 
         exit(1);
     }
 }
 
-// calloc with assert
-void *
-a_calloc(size_t nsize)
-{
-    void * tmp = calloc(1, nsize);
-    assert(tmp);
-    return tmp;
-}
+/*
+    Description :
+    1. Runs fuzz loop.
+    TODO
 
-// Runs fuzz loop
+    Return value : none
+*/
 void
-fuzz_loop()
+fuzz_main(pConfig_t config)
 {
+    set_config(config);
+
     if(g_config == 0x0){
         fprintf(stderr, "You must init first\n");
         exit(1);
     }
-
-    srand(time(0x0));
     
     signal(SIGALRM, signal_handler);
+
+    g_loop_start = clock();
+    
+    cov_info_t ** cov_info = (cov_info_t **)a_calloc(sizeof(cov_info_t*) * MAX_NUM_SRC);
+    for(int i = 0 ; i < MAX_NUM_SRC ; i++){
+        cov_info[i] = (cov_info_t *) a_calloc(sizeof(cov_info_t) * MAX_COVERAGE_LINE);
+    }
+
+    char rand_str[MAX_SEED_LEN];
+    char out_buff[g_config->tmp_buf_size];
+    char err_buff[g_config->tmp_buf_size];
     
     int i = 0;
     while(1){
         // Termination Condition
         // This is not exactly how much time we would like fuzzer to run.
         // This is timeout on total run_time of testing program.
-        if(g_result.exec_time >= g_config->timeout){
-            
+        if(g_result.exec_time >= g_config->timeout || i == g_config->max_trial ){
             exit_protocol();
             exit(0);
         }
         g_itr = i++;
         // TODO size can change
-        char out_buff[g_config->tmp_buf_size];
-        char err_buff[g_config->tmp_buf_size];
 
         // crate_rand_str could change when using mutabion-based fuzzing
-        char *rand_str;
         int len;
-        char * seed_file;
-        if(g_config->rnd_str_gen_type == T_RSG){
+        int seed_ind;
 
-            rand_str = (char *) a_calloc(sizeof(char) * (g_config->in_configs.max_len + 1));
+        if(g_config->rsg_type == T_RSG){
 
             len = create_rand_str(g_config->in_configs, rand_str);
 
-        } else if(g_config->rnd_str_gen_type == T_MUT){
+        } else if(g_config->rsg_type == T_MUT){
 
             // TODO : How should I allocate sufficient amount of memory for random string input
-            rand_str = (char *) a_calloc(sizeof(char) * (g_config->in_configs.max_len + 1 + g_config->in_configs.max_mutation * 4));
             
-            seed_file = seed_dequeue();
-            len = read_seed(rand_str, seed_file);
+            seed_ind = get_seed_ind(&g_seed_info);
+            len = get_seed_str(&g_seed_info, rand_str, seed_ind);
 #ifdef DEBUG
             printf("seed array : %s\n", rand_str);
 #endif
@@ -829,7 +792,7 @@ fuzz_loop()
 #endif
 
         alarm(g_config->hang_timeout);
-        clock_t start = clock();
+        clock_t exec_start = clock();
         
         int exit_code = exec_process(rand_str, len, i, out_buff, err_buff);
 
@@ -839,8 +802,8 @@ fuzz_loop()
         printf("err_buff : %s\n", err_buff);
 #endif
 
-        clock_t end = clock();
-        g_result.exec_time += (double) (end - start) / CLOCKS_PER_SEC; 
+        clock_t exec_end = clock();
+        g_result.exec_time += (double) (exec_end - exec_start) / CLOCKS_PER_SEC; 
 
         if( !g_config->oracle(exit_code, rand_str, len, out_buff, err_buff)) {
             g_result.bugs++;  
@@ -848,52 +811,36 @@ fuzz_loop()
         }
         g_result.tot_test_cases++;
 
-        memset(out_buff, 0, g_config->tmp_buf_size);
-        memset(err_buff, 0, g_config->tmp_buf_size);
-
-        if(g_config->fuzz_mode == M_SRC || g_config->fuzz_mode == M_COMPILED_BIN){
-            cov_info_t ** cov_info = (cov_info_t **)a_calloc(sizeof(cov_info_t*) * MAX_NUM_SRC);
-            for(int i = 0 ; i < MAX_NUM_SRC ; i++){
-                cov_info[i] = (cov_info_t *) a_calloc(sizeof(cov_info_t) * MAX_COVERAGE_LINE);
-            }
-
-            gcov_multiple(g_config->src_path, g_config->d_num_src_files, g_config->src_dir_path, cov_info); 
-                
-            
-            // Something is added to branch coverage
-            if(union_branch_cov(cov_info) > 0){
-                char new_seed_file[NAME_MAX];
-                
-                // make seed_file
-                printf(" *** add %s to seed *** \n", rand_str);
-                make_seed(rand_str, len, new_seed_file);
-
-                seed_enqueue(seed_file);
-                seed_enqueue(new_seed_file);
-            } else {
-                // TODO : If queue is full do not enqueue...?
-                // Deal with the old and useless seeds 
-                // If they are old, increase chaos level? 
-                seed_enqueue(seed_file);
-            }
-
-            free_N((void**)cov_info, MAX_NUM_SRC);
+    
+        gcov_multiple(g_config->src_path, g_config->d_num_src_files, g_config->src_dir_path, cov_info); 
         
-            // remove gcov file
-            for(int i = 0; i < g_config->d_num_src_files; i++){
-                if(remove_gcda(g_config->src_path[i]) != 0){
-                    fprintf(stderr, "Error in src_path. Src_path must have dot in it\n");
-                    exit(1);
-                }
-            }
-
-        } else if(g_config->fuzz_mode == M_BIN){
-            seed_enqueue(seed_file);
+        // Something is added to branch coverage
+        if(union_branch_cov(cov_info) > 0){
+            char new_seed_file[NAME_MAX];
+            
+            // make seed_file
+            printf(" *** add %s to seed *** \n", rand_str);
+            make_seed_file(&g_seed_info, g_config->seed_path, rand_str, len, g_seed_info.num_seed);
+            add_seed(&g_seed_info, rand_str, len, INIT_SEED_ENERGY);
         }
-        free(rand_str);
-        print_result();
-    }
 
-    // Print result pretty
+        char abs_file_path[PATH_MAX+3];
+        // remove gcov file
+        for(int i = 0; i < g_config->d_num_src_files; i++){
+            sprintf(abs_file_path, "%s/%s", g_config->src_dir_path, g_config->src_path[i]);
+
+            if(remove_gcda(abs_file_path) != 0){
+                fprintf(stderr, "Error in src_path.\n");
+                exit(1);
+            }
+        }
+        write_log(g_config->data_path);
+        //print_result();
+        clock_t loop_end = clock();
+        //printf("%f\n",(float)(loop_end - g_loop_start) / CLOCKS_PER_SEC);
+    }
+        
+    // TODO : free in signal handler?
+    free_N((void**)cov_info, MAX_NUM_SRC);
     exit_protocol();
 }

@@ -1,11 +1,16 @@
 #ifndef _HAVE_TYPES_H_
 #define _HAVE_TYPES_H_
 
-#define MAX_COVERAGE_LINE 512
-#define MAX_BRANCH 128
+#define MAX_COVERAGE_LINE 1024
+#define MAX_BRANCH 64
 
 #define MAX_SEED_FILES 1024
 #define MAX_NUM_SRC 100
+
+#define MAX_SEED_LEN 4096
+#define INIT_SEED_ENERGY 1
+
+#define DEFAULT_MAKE_OUT 0 // Don't make
 
 #include <linux/limits.h>
 
@@ -39,22 +44,34 @@ typedef struct _in_config{
     int max_mutation ;
 }in_config_t;
 
-typedef struct _queue{
-    int size ;
-    int front ;
-    int rear ;
-    char queue[MAX_SEED_FILES][NAME_MAX] ;
-}queue_t;
+
+// typedef struct _queue{
+//     int size ;
+//     int front ;
+//     int rear ;
+//     char queue[MAX_SEED_FILES][NAME_MAX] ;
+// }queue_t;
+
+typedef struct seed_t{
+    char str[MAX_SEED_LEN];
+    int len;
+    double energy;
+} seed_t;
+
+typedef struct seed_info_t{
+    int num_seed ;
+    seed_t seeds[MAX_SEED_FILES] ; // weight inforamtion is stored
+    double norm_energy[MAX_SEED_FILES] ;
+}seed_info_t, *pSeed_info_t;
 
 
 typedef struct _config{
-
     // fuzzer input config
-    enum rsg_type rnd_str_gen_type; 
+    enum rsg_type rsg_type; 
     in_config_t in_configs;
 
-    // Seed schedular
-    queue_t seed_queue;
+    // // Seed schedular
+    // queue_t seed_queue;
  
     // fuzz mode 0 :=> input : source path
     enum fz_mode fuzz_mode ; // 0 = Source code, 1 = Executable binary file
@@ -76,15 +93,15 @@ typedef struct _config{
     
     // d_ for system defining variables
     int d_num_src_files; 
-    
-    // get c_files number from init 
-    // char c_files[MAX_C_FILES][PATH_MAX];
 
     // input, output, error data path
     char data_path[PATH_MAX] ;
 
     // seed corpus path
     char seed_path[PATH_MAX] ;
+    
+    // path to write logs
+    char exp_file_path[PATH_MAX];
 
     // command line config
 	enum ex_mode exec_mode ;  // 0 = STDIN, 1 = ARG, 2 = M_FILe
@@ -92,10 +109,13 @@ typedef struct _config{
     // Specifics
     int tmp_buf_size ;
 
-    // Exec
+    // Termination confition
     int max_trial ; 
     int timeout ;
     
+    // Do Not Make outfile option
+    int make_out ;
+
     // Coverage
     enum cov_mode coverage_mode;
 
@@ -120,6 +140,7 @@ typedef struct _coverage_info{
 typedef struct _result{
     int bugs ;
     int tot_test_cases ;
+    double loop_time;
     double exec_time;
     int char_n ;
     int tot_branches;

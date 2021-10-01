@@ -3,10 +3,9 @@
 int
 main(){
     config_t config;
-    config.oracle = 0x0;
-
+    
     init_fuzzer(&config);
-    fuzz_loop();
+    fuzz_main(&config);
 
     return 0;
 }
