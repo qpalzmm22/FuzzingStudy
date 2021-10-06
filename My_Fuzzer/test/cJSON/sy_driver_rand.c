@@ -9,8 +9,8 @@ main(){
 
     config.rsg_type = T_RSG ;
     config.exec_mode = M_STDIN;
-    strcpy(config.prog_path, "/home/qpalzmm22/FuzzingStudy/My_Fuzzer/target/cJSON/sy");
-    strcpy(config.src_dir_path, "/home/qpalzmm22/FuzzingStudy/My_Fuzzer/target/cJSON/");
+    strcpy(config.prog_path, "/home/qpalzmm22/FuzzingStudy/My_Fuzzer/target/cJSON/sy/sy");
+    strcpy(config.src_dir_path, "/home/qpalzmm22/FuzzingStudy/My_Fuzzer/target/cJSON/sy/");
     
     config.max_trial = 5000;
     config.timeout = 100000;

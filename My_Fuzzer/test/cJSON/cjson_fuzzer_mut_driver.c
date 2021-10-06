@@ -8,7 +8,7 @@ main(){
     init_fuzzer(&config);
 
 
-    config.exec_mode = M_FILE;
+    config.exec_mode = M_STDIN;
     strcpy(config.prog_path, "/home/qpalzmm22/FuzzingStudy/My_Fuzzer/target/cJSON/cjson_test_case");
     strcpy(config.src_dir_path, "/home/qpalzmm22/FuzzingStudy/My_Fuzzer/target/cJSON/");
     

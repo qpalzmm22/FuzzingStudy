@@ -88,12 +88,12 @@ main(int argc, char **argv)
     char * buf = (char*) calloc(1, sizeof(char) * 8192);
     size_t size_buf = 0;
 
-    while((buf([size_buf] = getc(stdin)) != EOF)){
+    while((buf[size_buf] = getc(stdin)) != EOF){
         size_buf++;
     }
     buf[size_buf] = 0x0;
 
-    testcase1((uint8_t *)buf, received);
+    testcase1((uint8_t *)buf, size_buf);
     free(buf);
     
     return 0;
