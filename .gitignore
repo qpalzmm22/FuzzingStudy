@@ -11,4 +11,3 @@ bin/*
 *.gcov
 *.gcda
 *.gcno
-*.c
