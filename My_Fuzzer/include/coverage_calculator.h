@@ -41,10 +41,4 @@ gcov_multiple(char ** src_array, int num_files, char * src_dir_path, cov_info_t 
 char *
 extract_filename(char *filepath);
 
-void 
-execute_line_cov(char* filepath, char* gcpath, char ** args, int argc, int * coverage);
-
-void
-execute_branch_cov(char* filepath, char* gcpath, char ** args, int argc, b_info_t *pb_info);
-
 #endif /* !_HAVE_COVERAGE_CALCULATOR_H_ */

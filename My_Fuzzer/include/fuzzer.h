@@ -23,6 +23,7 @@
 #include <signal.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
+#include <errno.h>
 
 char * create_tmp_dirs();
 

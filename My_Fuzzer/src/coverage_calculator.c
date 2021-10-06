@@ -32,58 +32,45 @@ trim(char* str)
 }
 
 void
-print_coverage(int * coverage)
-{
-    printf("Covered lines :\n");
-    int i = 0;    
-    while(i < MAX_COVERAGE_LINE){
-        if(coverage[i] >= 1){
-            printf("(%d)", i);
-        }
-        i++;
-    }
-    printf("\n");
-}
-
-void
 print_branch_coverage(cov_info_t ** pp_cov_info, int num_files)
 {
     printf("Covered branches :\n");
     for(int i = 0 ; i < num_files ; i++){
         printf("File : %s\n", pp_cov_info[i]->file_name);
-
-        for(int j = 0 ; j < pp_cov_info[i]->tot_branches; j++ ){
-            printf("%d : \n", pp_cov_info[i]->b_infos[j].line_num);
+        
+        printf("Total : %d, Covered: %d\n", pp_cov_info[i]->tot_branches, pp_cov_info[i]->tot_branches_covered);
+        // for(int j = 0 ; j < pp_cov_info[i]->tot_branches; j++ ){
+        //     printf("%d : \n", pp_cov_info[i]->b_infos[j].line_num);
             
-            for(int k = 0 ; k < pp_cov_info[i]->b_infos[j].num_branch; k++){
-                printf("[%d] => %d\n", k, pp_cov_info[i]->b_infos[j].runs[k]);
-            }
-        }
+        //     for(int k = 0 ; k < pp_cov_info[i]->b_infos[j].num_branch; k++){
+        //         printf("[%d] => %d\n", k, pp_cov_info[i]->b_infos[j].runs[k]);
+        //     }
+        // }
     }
     printf("\n");
 }
 
-int
-get_branch_coverage(int* coverage, int * branch_coverage)
-{  
-    int tot_cov = 0;
-    for(int i = 0; i < MAX_COVERAGE_LINE - 1  ; i++){
-        if(coverage[i] && coverage[i + 1]){
-            branch_coverage[i] = 1;
-            tot_cov++;
-        } else if(i >0 && coverage[i-1] && coverage[i]){
-            branch_coverage[i] = 1;
-            tot_cov++;
-        }
-    }
-    return tot_cov;
-}
+// int
+// get_branch_coverage(int* coverage, int * branch_coverage)
+// {  
+//     int tot_cov = 0;
+//     for(int i = 0; i < MAX_COVERAGE_LINE - 1  ; i++){
+//         if(coverage[i] && coverage[i + 1]){
+//             branch_coverage[i] = 1;
+//             tot_cov++;
+//         } else if(i >0 && coverage[i-1] && coverage[i]){
+//             branch_coverage[i] = 1;
+//             tot_cov++;
+//         }
+//     }
+//     return tot_cov;
+// }
 
 // Returns -1 when there is no file named `c_file.gcov` which is very possible.
 int 
 read_gcov_coverage_with_bc_option(char * c_file, cov_info_t * pcov_info)
 {
-    b_info_t * pb_info = pcov_info->b_infos;
+    char *bmap = pcov_info->bmap;
     char target_file[PATH_MAX];
     
     sprintf(target_file, "%s.gcov", c_file);
@@ -94,19 +81,18 @@ read_gcov_coverage_with_bc_option(char * c_file, cov_info_t * pcov_info)
     }
     int branch_flag = 0;
     int branch_itr = 0;
-    char line[MAX_COVERAGE_LINE];
+    char line[MAX_LINE_IN_FILE];
     int line_number = 0;
     int tot_branches = 0;
     int tot_branches_covered = 0;
-    pb_info[branch_itr].num_branch = 0;
  
 
-    while(fgets(line, MAX_COVERAGE_LINE, fp) != 0x0){
+    while(fgets(line, MAX_LINE_IN_FILE, fp) != 0x0){
         if(strncmp(line, "branch", 6) == 0){
 
-            branch_flag = 1;
+            // branch_flag = 1;
 
-            pb_info[branch_itr].line_num = line_number;
+            //b_infos[branch_itr].line_num = line_number;
 
             char* tokens[4];
             tokens[0] = strtok(line, " ");
@@ -116,15 +102,18 @@ read_gcov_coverage_with_bc_option(char * c_file, cov_info_t * pcov_info)
             }
 
             if(strncmp(tokens[2], "never", 5) == 0 ){
-                pb_info[branch_itr].runs[pb_info[branch_itr].num_branch] = 0;
+               bmap[branch_itr] = 0; 
+               // b_infos[branch_itr].runs[b_infos[branch_itr].num_branch] = 0;
             } else { 
                 // If branch at `line_number`, `branch_itr`-th branch was run at least once, mark it as 1. 
                 // Else 0
-                pb_info[branch_itr].runs[pb_info[branch_itr].num_branch] = (atoi(tokens[3]) > 0 ? 1 : 0);
+                //b_infos[branch_itr].runs[b_infos[branch_itr].num_branch] = (atoi(tokens[3]) > 0 ? 1 : 0);
+                bmap[branch_itr] = (atoi(tokens[3]) > 0 ? 1 : 0);
             }
-            pb_info[branch_itr].num_branch++;
             tot_branches++;
-            tot_branches_covered += pb_info[branch_itr].runs[pb_info[branch_itr].num_branch];
+            //tot_branches_covered += b_infos[branch_itr].runs[b_infos[branch_itr].num_branch];
+            tot_branches_covered += bmap[branch_itr++]; 
+            //b_infos[branch_itr].num_branch++;
         } else  {
             if(strncmp(line, "branch", 6) != 0 && strncmp(line, "call", 4) != 0 && strncmp(line, "function", 8) != 0){
                 // line coverage
@@ -132,11 +121,11 @@ read_gcov_coverage_with_bc_option(char * c_file, cov_info_t * pcov_info)
                 line_number = atoi( trim( strtok( 0x0, ":" )));
             }
 
-            if(branch_flag == 1){
-                branch_itr++;
-            }
-            branch_flag = 0;
-            pb_info[branch_itr].num_branch = 0;
+            // if(branch_flag == 1){
+            //     branch_itr++;
+            // }
+            // branch_flag = 0;
+            //b_infos[branch_itr].num_branch = 0;
         }
     }
     pcov_info->tot_branches = tot_branches ;
@@ -144,28 +133,6 @@ read_gcov_coverage_with_bc_option(char * c_file, cov_info_t * pcov_info)
 
     fclose(fp);
     return tot_branches;    
-}
-
-// Malloced. Need to be freed.
-// gets filename from path.
-char *
-extract_filename(char *filepath)
-{
-    char * filename = 0x0;
-    int len = strlen(filepath);
-    for(int i = len - 1 ; i >= 0 ; i--){
-        if(filepath[i] == '/'){
-            filename = (char*) malloc(sizeof(char) * (len - i + 2));
-            strncpy(filename, filepath + i + 1 , len - i + 2);
-            return filename;
-        }
-    }
-    if(filename == 0x0){ // filepath = relative path, doesn't contain '/' in name
-        filename = (char *) malloc(sizeof(char) * (len + 1));
-        strcpy(filename, filepath);
-    }
-
-    return filename;
 }
 
 // Gets src_dirpath and iterate. Find all the files end with .c and add them to src_array
@@ -190,7 +157,6 @@ get_file_names(char *src_dirpath, char ** src_array)
                 // TODO : How to make it secure?
                 
                 strncpy(src_array[i], file->d_name, NAME_MAX);
-                
                 i++;
             }
         }
@@ -228,8 +194,9 @@ remove_gcda(char *filepath)
             gcda_path[i + 5] = 0x0;
 
             if(remove(gcda_path) != 0){
-                return  0;
+                return 0;
             } else {
+                // couldn't find or remove the file.
                 return 0;
             }
         }
@@ -287,17 +254,17 @@ test_multi_source()
 
     cov_info_t ** cov_info = (cov_info_t **)malloc(sizeof(cov_info_t*) * MAX_NUM_SRC);
     for(int i = 0 ; i < MAX_NUM_SRC ; i++){
-        cov_info[i] = (cov_info_t *) malloc(sizeof(cov_info_t) * MAX_COVERAGE_LINE);
+        cov_info[i] = (cov_info_t *) malloc(sizeof(cov_info_t));
     }
 
     int num_files = get_file_names(src_dir_path, src_array);
 
     gcov_multiple(src_array, num_files, src_dir_path, cov_info);
 
-   print_branch_coverage(cov_info, num_files);
+    print_branch_coverage(cov_info, num_files);
 
-    free_N((void **)src_array, MAX_NUM_SRC);
-    free_N((void **)cov_info, MAX_NUM_SRC);
+    free_N((void**)src_array, MAX_NUM_SRC);
+    free_N((void**)cov_info, MAX_NUM_SRC);
 
 }
 

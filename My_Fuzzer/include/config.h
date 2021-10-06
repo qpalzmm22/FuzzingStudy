@@ -59,6 +59,7 @@
 
 // ============= VIEW CONFIG $ ============= //
 
+#define DEL_SEED 1 // Delete newly create seed?
 
 /* -------------------------------------------------------------------------------------
          |                       | 
@@ -108,7 +109,6 @@
 #ifndef SEED_PATH 
 #define SEED_PATH "./seed_corpus"
 #endif /* ! SEED_PATH */
-
 
 #ifndef PROG_ARGS 
 #define PROG_ARGS ""

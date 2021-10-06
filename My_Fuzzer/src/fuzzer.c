@@ -5,11 +5,11 @@
 
 // #define DEBUG
 
-static pConfig_t g_config;
-static result_t g_result;
-static pid_t g_pid;
-static int g_itr;
-static seed_info_t g_seed_info;
+pConfig_t g_config;
+pResult_t g_result;
+pid_t g_pid;
+int g_itr;
+seed_info_t g_seed_info;
 clock_t g_loop_start;
 
 /*
@@ -53,10 +53,8 @@ create_tmp_dirs()
 		perror("ERROR in creating err directory");
         exit(1);
 	}
-
     return dir_name;
 }
-
 
 /*
     Description : 
@@ -136,15 +134,11 @@ exec_process(char * str, int len, int itr, char *out_buff, char *err_buff)
             else if(g_config->exec_mode == M_FILE){
 
                 g_config->prog_argv[g_config->prog_argc++] = in_file_path;
-                g_config->prog_argv =  (char**)realloc(argv, (g_config->prog_argc + 1) * sizeof(char*)) ;
-                assert(argv) ;
                 argv[g_config->prog_argc] = 0x0 ;
             } // For arg mode, make sure to locate fuzzed string at the end of argvs
             else if(g_config->exec_mode == M_ARG){
                 
                 g_config->prog_argv[g_config->prog_argc++] = str;
-                g_config->prog_argv =  (char**)realloc(argv, (g_config->prog_argc + 1) * sizeof(char*)) ;
-                assert(argv) ;
                 argv[g_config->prog_argc] = 0x0 ;
                 printf("argc : %d\n",g_config->prog_argc );
 
@@ -241,7 +235,6 @@ exec_process(char * str, int len, int itr, char *out_buff, char *err_buff)
 
             return ret_code;
     }
-
 }
 
 
@@ -258,26 +251,25 @@ exec_process(char * str, int len, int itr, char *out_buff, char *err_buff)
 void
 make_argv()
 {
-    // Does not consider the case where argvs come as fuzzed input.
-    char ** argv = (char **) a_calloc( sizeof(char*));
+    // Does not consider the case where arg vs come as fuzzed input.
+    char ** argv = (char **) a_calloc( MAX_ARGV *sizeof(char*));
     
     argv[0] = g_config->prog_path;
     int argc = 1;
     
-    char * args = (char*) a_calloc((strlen(PROG_ARGS) + 1) * sizeof(char));
+    // char * args = (char*) a_calloc((strlen(PROG_ARGS) + 1) * sizeof(char));
     
-    // TODO : Better function...?
-    strncpy(args, PROG_ARGS, strlen(PROG_ARGS) + 1);    
+    // // TODO : Better function...?
+    // strncpy(args, PROG_ARGS, strlen(PROG_ARGS) + 1);    
 
-    char * arg = strtok(args, " ");
+    char * arg = strtok(PROG_ARGS, " ");
     while( arg != 0x0){                                                                                                                                                                                                                                                                                   
         argc++;
-        argv = (char**)realloc(argv, (argc + 1) * sizeof(char*));
-        assert(argv);
         argv[argc - 1] = arg;
 
         arg = strtok(NULL, " ");
     }
+    
 
     // adds null at the end of argv
     argv[argc] = 0x0 ;
@@ -314,6 +306,7 @@ default_oracle(int exit_code, char* input, int input_len, char* stdout_buff, cha
 void
 init_fuzzer(pConfig_t config)
 {
+
     if (RSG_TYPE != T_RSG && RSG_TYPE != T_MUT){
         fprintf(stderr, "RSG_TYPE must be between 0 ~ 1. 0 for randomly generated strings, 1 for Mutant based strings\n") ;
         exit(1) ;
@@ -406,6 +399,8 @@ init_fuzzer(pConfig_t config)
     config->make_out = DEFAULT_MAKE_OUT;
 }
 
+
+
 /*
     Description : 
     Fuzzer will set with `config` settings.
@@ -429,6 +424,7 @@ set_config(pConfig_t config){
 
     g_seed_info.num_seed = 0;
     seed_init(&g_seed_info, g_config->seed_path);
+    g_seed_info.init_num_seed = g_seed_info.num_seed;
 
     // Gets argvs
     // g_config->args needs to be freed;
@@ -503,35 +499,30 @@ set_config(pConfig_t config){
     // --------------------- Initialize g_results----------------
 
 
+    g_result = (pResult_t) a_calloc(sizeof(result_t));
     // It's useless since it's declared global?
-    g_result.bugs = 0;
-    g_result.tot_test_cases = 0;
-    g_result.exec_time = 0;
-    g_result.char_n = 0;
+    g_result->bugs = 0;
+    g_result->tot_test_cases = 0;
+    g_result->exec_time = 0;
+    g_result->char_n = 0;
 
-    g_result.tot_branches = 0; 
-    g_result.tot_branches_covered = 0;
+    g_result->tot_branches = 0; 
+    g_result->tot_branches_covered = 0;
     
-
-    g_result.cov_set = (int **) a_calloc(g_config->d_num_src_files * sizeof(int*));
-
-    for(int i = 0; i < MAX_NUM_SRC; i++){
-        g_result.cov_set[i] = (int *) a_calloc(MAX_COVERAGE_LINE * sizeof(int));
-    }
-
-    //memset(g_result.cov_set, 0, MAX_COVERAGE_LINE);
-    g_result.pp_union_cov = (cov_info_t **) a_calloc(MAX_NUM_SRC * sizeof(cov_info_t*));
+    //memset(g_result->cov_set, 0, MAX_COVERAGE_LINE);
+    g_result->pp_union_cov = (cov_info_t **) a_calloc(MAX_NUM_SRC * sizeof(cov_info_t*));
 
     for(int i = 0; i < MAX_NUM_SRC; i++){
-        g_result.pp_union_cov[i] = (cov_info_t *) a_calloc(MAX_COVERAGE_LINE * sizeof(cov_info_t));
+        g_result->pp_union_cov[i] = (cov_info_t *) a_calloc(sizeof(cov_info_t));
     }
 
+    signal(SIGALRM, signal_handler);
 }
 
 
 /*
     Description : 
-    Union coverage information for g_result.pp_union_cov with input, `pp_cov_info`
+    Union coverage information for g_result->pp_union_cov with input, `pp_cov_info`
     While at it, it also continuously copies the other infomation 
     like number of brances or number of bracnches covered
 
@@ -544,30 +535,21 @@ set_config(pConfig_t config){
 int
 union_branch_cov(cov_info_t ** pp_cov_info)
 {
-    g_result.tot_branches = 0;
-    g_result.tot_branches_covered = 0;
+    g_result->tot_branches = 0;
     int inc_flag = 0;
     for(int i = 0 ; i < g_config->d_num_src_files ; i++){
-        
         for(int j = 0 ; j < pp_cov_info[i]->tot_branches; j++ ){
-            // TODO : Unecessary repetitions. Please resolve.
-
-            g_result.pp_union_cov[i]->b_infos[j].line_num = pp_cov_info[i]->b_infos[j].line_num;
-            g_result.pp_union_cov[i]->b_infos[j].num_branch = pp_cov_info[i]->b_infos[j].num_branch;
-            
-
-            for(int k = 0 ; k < pp_cov_info[i]->b_infos[j].num_branch; k++){
-                if(g_result.pp_union_cov[i]->b_infos[j].runs[k] == 0 && pp_cov_info[i]->b_infos[j].runs[k] != 0){
-                    g_result.pp_union_cov[i]->tot_branches_covered++;
-                    g_result.pp_union_cov[i]->b_infos[j].runs[k] += pp_cov_info[i]->b_infos[j].runs[k];
-                    inc_flag = 1;
-                }
+            if(g_result->pp_union_cov[i]->bmap[j] == 0 && pp_cov_info[i]->bmap[j] == 1){
+                inc_flag = 1;
+                g_result->pp_union_cov[i]->bmap[j] = 1;
+                g_result->pp_union_cov[i]->tot_branches_covered++;
+                g_result->tot_branches_covered++;
             }
-            
         }
-        g_result.pp_union_cov[i]->tot_branches = pp_cov_info[i]->tot_branches;
-        g_result.tot_branches += pp_cov_info[i]->tot_branches;
-        g_result.tot_branches_covered += g_result.pp_union_cov[i]->tot_branches_covered;
+        //g_result->pp_union_cov[i]->tot_branches_covered = pp_cov_info[i]->tot_branches_covered;
+        g_result->pp_union_cov[i]->tot_branches = pp_cov_info[i]->tot_branches;
+        g_result->tot_branches += pp_cov_info[i]->tot_branches;
+        
     }
     return inc_flag;
 }
@@ -594,19 +576,18 @@ write_log(char * log_dir_path)
 
     double time = ((double) end - g_loop_start) / CLOCKS_PER_SEC ;
     
-    sprintf(log, "%d, %d, %f\n", g_itr, g_result.tot_branches_covered, time);
+    sprintf(log, "%d, %d, %f\n", g_itr, g_result->tot_branches_covered, time);
     sprintf(log_path, "%s/log.csv", log_dir_path); 
 
     FILE * fp ;
     if((fp = fopen(log_path, "a+")) == 0x0){
-        perror("Error in fopen in make_log_result.");
+        perror("Error in fopen in make_log_result");
         exit(1);
     }
     fputs(log, fp);
  
     fclose(fp);
 }
-
 
 /*
     Description : 
@@ -635,42 +616,24 @@ print_result()
         printf("=                  Prog arg[%d] : %70s            =\n", i, g_config->prog_argv[i]);
     }
     printf("=                   Output Path : %70s            =\n", g_config->data_path);
-    printf("=                    Test Cases : %70d            =\n", g_result.tot_test_cases);
-    printf("=   Total Test Time(in seconds) : %70.3f            =\n", g_result.loop_time);
-    printf("=   Avg. Test Time(in mseconds) : %70.3f            =\n", g_result.loop_time / g_result.tot_test_cases * 1000);
-    printf("=  Total Exec. Time(in seconds) : %70.3f            =\n", g_result.exec_time);
-    printf("=  Avg. Exec. Time(in mseconds) : %70.3f            =\n", g_result.exec_time / g_result.tot_test_cases * 1000);
+    printf("=                    Test Cases : %70d            =\n", g_result->tot_test_cases);
+    printf("=   Total Test Time(in seconds) : %70.3f            =\n", g_result->loop_time);
+    printf("=   Avg. Test Time(in mseconds) : %70.3f            =\n", g_result->loop_time / g_result->tot_test_cases * 1000);
+    printf("=  Total Exec. Time(in seconds) : %70.3f            =\n", g_result->exec_time);
+    printf("=  Avg. Exec. Time(in mseconds) : %70.3f            =\n", g_result->exec_time / g_result->tot_test_cases * 1000);
     printf("= ---------------------------------------------------- BUG STATS -------------------------------------------------- =\n");
-    printf("=                    Bugs Found : %70d            =\n", g_result.bugs);
-    printf("=            Bugs per testcases : %70.3f            =\n", ((double)g_result.bugs) / g_result.tot_test_cases);
-    printf("=      Bugs per number of chars : %70.5f            =\n", ((double)g_result.bugs) / g_result.char_n);
+    printf("=                    Bugs Found : %70d            =\n", g_result->bugs);
+    printf("=            Bugs per testcases : %70.3f            =\n", ((double)g_result->bugs) / g_result->tot_test_cases);
+    printf("=      Bugs per number of chars : %70.5f            =\n", ((double)g_result->bugs) / g_result->char_n);
     
     if(g_config->fuzz_mode == M_SRC || g_config->fuzz_mode == M_COMPILED_BIN){
         printf("= ---------------------------------------------------- COVERAGE --------------------------------------------------- =\n");
-        printf("=               Branch Coverage : %70.3f %%          =\n", ((double)g_result.tot_branches_covered) * 100 / g_result.tot_branches);
+        printf("=               Branch Coverage : %70.3f %%          =\n", ((double)g_result->tot_branches_covered) * 100 / g_result->tot_branches);
         printf("=                                                                                                                   =\n");
         for(int i = 0 ; i < g_config->d_num_src_files; i++){
             printf("=                      File [%d] : %70s            =\n", i, g_config->src_path[i]);
-            printf("               Total Branch (%%) : %55d / %d (%.4f %%)          \n",  g_result.pp_union_cov[i]->tot_branches_covered, g_result.pp_union_cov[i]->tot_branches,((double) g_result.pp_union_cov[i]->tot_branches_covered) * 100 / g_result.pp_union_cov[i]->tot_branches);
+            printf("               Total Branch (%%) : %55d / %d (%.4f %%)          \n",  g_result->pp_union_cov[i]->tot_branches_covered, g_result->pp_union_cov[i]->tot_branches,((double) g_result->pp_union_cov[i]->tot_branches_covered) * 100 / g_result->pp_union_cov[i]->tot_branches);
             printf("=                                                                                                                   =\n");    
-                
-            if(PRINT_BRANCH){
-                printf("=                                                                                                                   =\n");    
-                        
-                for(int j = 0; j < g_result.pp_union_cov[i]->tot_branches; j++){
-                    
-                    b_info_t branch_info = g_result.pp_union_cov[i]->b_infos[j];
-                    
-                    if(branch_info.num_branch == 0 ) continue;
-
-                    for(int k = 0; k < branch_info.num_branch; k++){
-                        printf("=   Branch Line [ %10d ] ::   :: Branch [ %2d ] => %40d    %3.f %%           =\n", branch_info.line_num, k, branch_info.runs[k], (double)branch_info.runs[k] / g_result.tot_test_cases);
-                    }
-                    printf("=                                                                                                                   =\n");
-                } 
-            }
-
-            
         } 
     } 
     printf("=====================================================================================================================\n");
@@ -688,18 +651,29 @@ print_result()
 void
 exit_protocol()
 {
+    if(DEL_SEED)
+        delete_seed(g_config->seed_path, g_seed_info.init_num_seed, g_seed_info.num_seed);
+
     clock_t loop_end = clock();
-    g_result.loop_time = (double)(loop_end - g_loop_start) / CLOCKS_PER_SEC;
+    g_result->loop_time = (double)(loop_end - g_loop_start) / CLOCKS_PER_SEC;
 
     print_result();
     
-    for(int i = 0 ; i < g_config->d_num_src_files; i++){
-        free(g_result.pp_union_cov[i]);
+    for(int i = 0; i < g_config->d_num_src_files; i++){
+        free(g_result->pp_union_cov[i]);
     }
-    free(g_result.pp_union_cov);
+    free(g_result->pp_union_cov);
+    // free_N((void **)g_result->pp_union_cov, g_config->d_num_src_files);
 
-    free(g_config->prog_argv[1]);
+    free(g_result);
+
+    for(int i = 0; i < g_config->d_num_src_files; i++){
+        free(g_config->src_path[i]);
+    }
+    free(g_config->src_path);
+
     free(g_config->prog_argv);
+    
 }
 
 /*
@@ -713,7 +687,7 @@ void
 signal_handler(int sig)
 {
     if(sig == SIGALRM){
-        g_result.bugs++;
+        g_result->bugs++;
         printf(" *** Program hanged ! *** \n *** Check %d-th files *** \n", g_itr);
         kill(g_pid, SIGKILL);
     }
@@ -740,14 +714,12 @@ fuzz_main(pConfig_t config)
         fprintf(stderr, "You must init first\n");
         exit(1);
     }
-    
-    signal(SIGALRM, signal_handler);
 
     g_loop_start = clock();
     
     cov_info_t ** cov_info = (cov_info_t **)a_calloc(sizeof(cov_info_t*) * MAX_NUM_SRC);
     for(int i = 0 ; i < MAX_NUM_SRC ; i++){
-        cov_info[i] = (cov_info_t *) a_calloc(sizeof(cov_info_t) * MAX_COVERAGE_LINE);
+        cov_info[i] = (cov_info_t *) a_calloc(sizeof(cov_info_t));
     }
 
     char rand_str[MAX_SEED_LEN];
@@ -755,13 +727,14 @@ fuzz_main(pConfig_t config)
     char err_buff[g_config->tmp_buf_size];
     
     int i = 0;
+    int isBug = 0;
     while(1){
         // Termination Condition
         // This is not exactly how much time we would like fuzzer to run.
         // This is timeout on total run_time of testing program.
-        if(g_result.exec_time >= g_config->timeout || i == g_config->max_trial ){
-            exit_protocol();
-            exit(0);
+        if(g_result->exec_time >= g_config->timeout || i == g_config->max_trial ){
+            
+            break;
         }
         g_itr = i++;
         // TODO size can change
@@ -786,12 +759,12 @@ fuzz_main(pConfig_t config)
             len = create_mut_str(g_config->in_configs.max_mutation, rand_str, len, rand_str);
         }
         
-        g_result.char_n += len;
+        g_result->char_n += len;
 #ifdef DEBUG
         printf("rand array : %s\n", rand_str);
 #endif
 
-        alarm(g_config->hang_timeout);
+        //alarm(g_config->hang_timeout);
         clock_t exec_start = clock();
         
         int exit_code = exec_process(rand_str, len, i, out_buff, err_buff);
@@ -803,25 +776,31 @@ fuzz_main(pConfig_t config)
 #endif
 
         clock_t exec_end = clock();
-        g_result.exec_time += (double) (exec_end - exec_start) / CLOCKS_PER_SEC; 
+        g_result->exec_time += (double) (exec_end - exec_start) / CLOCKS_PER_SEC; 
 
         if( !g_config->oracle(exit_code, rand_str, len, out_buff, err_buff)) {
-            g_result.bugs++;  
+            g_result->bugs++;  
             printf(" *** Bug found! *** \n *** Check %d-th files *** \n", i);
+            isBug = 1; 
         }
-        g_result.tot_test_cases++;
+        g_result->tot_test_cases++;
 
-    
         gcov_multiple(g_config->src_path, g_config->d_num_src_files, g_config->src_dir_path, cov_info); 
         
         // Something is added to branch coverage
-        if(union_branch_cov(cov_info) > 0){
+        if(union_branch_cov(cov_info) > 0 || isBug == 1){
+            isBug = 0;
             char new_seed_file[NAME_MAX];
             
             // make seed_file
             printf(" *** add %s to seed *** \n", rand_str);
-            make_seed_file(&g_seed_info, g_config->seed_path, rand_str, len, g_seed_info.num_seed);
-            add_seed(&g_seed_info, rand_str, len, INIT_SEED_ENERGY);
+            
+
+            if(!BLACKBOX) {
+                make_seed_file(&g_seed_info, g_config->seed_path, rand_str, len, g_seed_info.num_seed);
+                add_seed(&g_seed_info, rand_str, len, INIT_SEED_ENERGY);
+            }
+            print_result();
         }
 
         char abs_file_path[PATH_MAX+3];
@@ -835,9 +814,10 @@ fuzz_main(pConfig_t config)
             }
         }
         write_log(g_config->data_path);
-        //print_result();
+        
         clock_t loop_end = clock();
-        //printf("%f\n",(float)(loop_end - g_loop_start) / CLOCKS_PER_SEC);
+        // printf("%f\n",(float)(loop_end - g_loop_start) / CLOCKS_PER_SEC);
+        
     }
         
     // TODO : free in signal handler?

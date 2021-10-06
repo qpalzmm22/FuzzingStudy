@@ -13,5 +13,8 @@
             "child_object1": 3840,
             "child_object2": 2160
         }
-    ]
+    ],
+    "object3": true,
+    "object5": false,
+    "object4": null
 }

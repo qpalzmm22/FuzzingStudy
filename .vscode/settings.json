@@ -18,7 +18,8 @@
         "ctype.h": "c",
         "gcov_creater.h": "c",
         "http_program.h": "c",
-        "typeinfo": "c"
+        "typeinfo": "c",
+        "*.tcc": "cpp"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }
