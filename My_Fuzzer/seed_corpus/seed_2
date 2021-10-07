@@ -22,8 +22,7 @@
         "vOffset": 100,
         "alignment": "center",
         "onMouseUp": "sun1.opacity = (sun1.opacity / 100) * 90;"
-    },
-    "real": {
+       "real": {
 	"matrix": [
     		[0, -1, 0],
     		[1, 0, 0],

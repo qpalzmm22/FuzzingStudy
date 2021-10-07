@@ -788,7 +788,7 @@ fuzz_main(pConfig_t config)
         gcov_multiple(g_config->src_path, g_config->d_num_src_files, g_config->src_dir_path, cov_info); 
         
         // Something is added to branch coverage
-        if(union_branch_cov(cov_info) > 0 || isBug == 1){
+        if(union_branch_cov(cov_info) > 0 ){
             isBug = 0;
             char new_seed_file[NAME_MAX];
             

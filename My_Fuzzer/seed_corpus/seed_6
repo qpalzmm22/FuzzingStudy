@@ -7,7 +7,7 @@
         "height": 500
     },
     "image": {
-        "src": "Images/Sun.png",
+   t    "src": "Images/Sun.png",
         "name": "sun1",
         "hOffset": 250,
         "vOffset": 250,

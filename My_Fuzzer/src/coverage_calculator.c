@@ -39,32 +39,10 @@ print_branch_coverage(cov_info_t ** pp_cov_info, int num_files)
         printf("File : %s\n", pp_cov_info[i]->file_name);
         
         printf("Total : %d, Covered: %d\n", pp_cov_info[i]->tot_branches, pp_cov_info[i]->tot_branches_covered);
-        // for(int j = 0 ; j < pp_cov_info[i]->tot_branches; j++ ){
-        //     printf("%d : \n", pp_cov_info[i]->b_infos[j].line_num);
-            
-        //     for(int k = 0 ; k < pp_cov_info[i]->b_infos[j].num_branch; k++){
-        //         printf("[%d] => %d\n", k, pp_cov_info[i]->b_infos[j].runs[k]);
-        //     }
-        // }
     }
     printf("\n");
 }
 
-// int
-// get_branch_coverage(int* coverage, int * branch_coverage)
-// {  
-//     int tot_cov = 0;
-//     for(int i = 0; i < MAX_COVERAGE_LINE - 1  ; i++){
-//         if(coverage[i] && coverage[i + 1]){
-//             branch_coverage[i] = 1;
-//             tot_cov++;
-//         } else if(i >0 && coverage[i-1] && coverage[i]){
-//             branch_coverage[i] = 1;
-//             tot_cov++;
-//         }
-//     }
-//     return tot_cov;
-// }
 
 // Returns -1 when there is no file named `c_file.gcov` which is very possible.
 int 

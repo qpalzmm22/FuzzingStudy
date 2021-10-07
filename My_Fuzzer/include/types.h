@@ -47,14 +47,6 @@ typedef struct _in_config{
     int max_mutation ;
 }in_config_t;
 
-
-// typedef struct _queue{
-//     int size ;
-//     int front ;
-//     int rear ;
-//     char queue[MAX_SEED_FILES][NAME_MAX] ;
-// }queue_t;
-
 typedef struct seed_t{
     char str[MAX_SEED_LEN];
     int len;
@@ -70,13 +62,9 @@ typedef struct seed_info_t{
 
 
 typedef struct _config{
-    // fuzzer input config
     enum rsg_type rsg_type; 
     in_config_t in_configs;
 
-    // // Seed schedular
-    // queue_t seed_queue;
- 
     // fuzz mode 0 :=> input : source path
     enum fz_mode fuzz_mode ; // 0 = Source code, 1 = Executable binary file
     char ** src_path ; // TODO CHANGE TO HEAP
@@ -129,14 +117,7 @@ typedef struct _config{
     int (*oracle)(int, char*, int, char*, char*) ;
 } config_t, *pConfig_t ;
 
-// typedef struct _branch_info{
-//     int line_num; // line number of the branch containing line
-//     int num_branch; // number of branches in one line
-//     char runs[MAX_BRANCH]; // boolean of whether that branch was run
-// } b_info_t, *pb_info;
-
 typedef struct _coverage_info{
-    char * file_name;
     int tot_branches;
     int tot_branches_covered;
     char bmap[MAX_BRANCH]; // info per branch 

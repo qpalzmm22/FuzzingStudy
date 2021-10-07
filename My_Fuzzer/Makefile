@@ -12,7 +12,7 @@ OUTBIN=fuzzer
 
 all : fuzz_cjson_mut fuzz_cjson_rand fuzzinger_test
 module_test : test_fuzz_input_maker test_gcov_creater test_coverage_calculator test_power_schedule
-fuzzinger_test : fuzz_mj_mut fuzz_mj_rand fuzz_sy_mut fuzz_sy_rand
+fuzzinger_test : fuzz_mj_mut fuzz_mj_rand fuzz_sy_mut fuzz_sy_rand fuzz_ji_mut fuzz_ji_rand fuzz_ws_mut fuzz_ws_rand
 
 # MODULE TESTER BUILDS
 # Enable Debug in the source code to test each
@@ -56,6 +56,17 @@ fuzz_sy_mut :
 fuzz_sy_rand : 
 	$(CC) -o bin/fuzz_sy_rand  $(CFILES) test/cJSON/sy_driver_rand.c
 
+fuzz_ji_mut : 
+	$(CC) -o bin/fuzz_ji_mut  $(CFILES) test/cJSON/ji_driver_mut.c
+
+fuzz_ji_rand : 
+	$(CC) -o bin/fuzz_ji_rand  $(CFILES) test/cJSON/ji_driver_rand.c
+
+fuzz_ws_mut : 
+	$(CC) -o bin/fuzz_ws_mut  $(CFILES) test/cJSON/ws_driver_mut.c
+
+fuzz_ws_rand : 
+	$(CC) -o bin/fuzz_ws_rand  $(CFILES) test/cJSON/ws_driver_rand.c
 
 clean : 
 	rm -r bin/* tmp* ./*.c a.out 
