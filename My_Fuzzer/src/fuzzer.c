@@ -733,7 +733,6 @@ fuzz_main(pConfig_t config)
         // This is not exactly how much time we would like fuzzer to run.
         // This is timeout on total run_time of testing program.
         if(g_result->exec_time >= g_config->timeout || i == g_config->max_trial ){
-            
             break;
         }
         g_itr = i++;
