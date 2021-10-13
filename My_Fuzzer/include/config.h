@@ -67,6 +67,9 @@
          V                       V
    ---------------------------------------------------------------------------------*/
 
+#ifndef BOX_MODE
+#define BOX_MODE M_GREY
+#endif /* ! BOX_MODE */
 
 // M_SRC : Fuzz src code
 // M_BIN : Fuzz binary program

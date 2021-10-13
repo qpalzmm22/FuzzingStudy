@@ -11,5 +11,7 @@ int my_fread(void * ptr, int n, FILE * stream);
 
 void * a_calloc(size_t nsize);
 
+void * a_malloc(size_t nsize);
+
 #endif /* !_HAVE_UTILITY_H_ */
 

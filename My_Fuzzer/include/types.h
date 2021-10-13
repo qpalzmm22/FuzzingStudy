@@ -13,10 +13,15 @@
 #define MAX_ARGV 32
 
 #define DEFAULT_MAKE_OUT 1 // Don't make
-#define BLACKBOX 0 // 1 if you want to test blackbox, 0 if you want to test greybox
+
+#define DEL_SEED 1 // 
 
 #include <linux/limits.h>
 
+enum box_mode{
+    /* 0 */ M_GREY, // greybox mode(default)
+    /* 1 */ M_BLACK, // blackbox mode
+};
 enum fz_mode{
     /* 0 */ M_SRC, // Fuzzing source file
     /* 1 */ M_BIN, // Fuzzing binary file (w/o coverage)
@@ -48,6 +53,7 @@ typedef struct _in_config{
 }in_config_t;
 
 typedef struct seed_t{
+    //char * str;
     char str[MAX_SEED_LEN];
     int len;
     double energy;
@@ -91,7 +97,6 @@ typedef struct _config{
 
     // seed corpus path
     char seed_path[PATH_MAX] ;
-
     
     // path to write logs
     char exp_file_path[PATH_MAX];
@@ -107,7 +112,8 @@ typedef struct _config{
     int timeout ;
     
     // Do Not Make outfile option
-    int make_out ;
+ 	int box_mode;
+ 	int make_out ;
 
     // Coverage
     enum cov_mode coverage_mode;

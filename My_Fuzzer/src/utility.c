@@ -57,3 +57,21 @@ a_calloc(size_t nsize)
     assert(tmp);
     return tmp;
 }
+
+
+/*
+    Description : 
+    Simple wrapper function that does malloc, and then assert that it was valid.
+
+    Return value : 
+    pointer to allocated block.
+*/
+void *
+a_malloc(size_t nsize)
+{
+    void * tmp = malloc(nsize);
+    //assert(tmp);
+    return tmp;
+}
+
+

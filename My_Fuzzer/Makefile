@@ -10,9 +10,9 @@ CFILES+=src/power_schedule.c
 
 OUTBIN=fuzzer
 
-all : fuzz_cjson_mut fuzz_cjson_rand fuzzinger_test
+all : fuzzinger_test
 module_test : test_fuzz_input_maker test_gcov_creater test_coverage_calculator test_power_schedule
-fuzzinger_test : fuzz_mj_mut fuzz_mj_rand fuzz_sy_mut fuzz_sy_rand fuzz_ji_mut fuzz_ji_rand fuzz_ws_mut fuzz_ws_rand
+fuzzinger_test : fuzz_mj fuzz_sy fuzz_ji fuzz_ws fuzz_my
 
 # MODULE TESTER BUILDS
 # Enable Debug in the source code to test each
@@ -36,37 +36,31 @@ test_power_schedule : src/power_schedule.c src/utility.c
 #url_parser_tester : $(CFILES)
 #	$(CC) -o bin/url_parser_tester $(CFILES)
 	
-fuzz_cjson_mut : $(CFILES) test/cJSON/cjson_fuzzer_mut_driver.c 
-	$(CC) -o bin/fuzz_cjson_mut $(CFILES) test/cJSON/cjson_fuzzer_mut_driver.c
-	
-fuzz_cjson_rand : $(CFILES) test/cJSON/cjson_fuzzer_rand_driver.c 
-	$(CC) -o bin/fuzz_cjson_rand  $(CFILES) test/cJSON/cjson_fuzzer_rand_driver.c
+fuzz_my: $(CFILES) 
+	$(CC) -o bin/fuzz_my_gry_mut $(CFILES) test/cJSON/my_driver_gry_mut.c
+	$(CC) -o bin/fuzz_my_blk_mut $(CFILES) test/cJSON/my_driver_blk_mut.c
+	$(CC) -o bin/fuzz_my_rand  $(CFILES) test/cJSON/my_driver_rand.c
 
 # FUZZINGERS PROGRAM
 
-fuzz_mj_mut : 
-	$(CC) -o bin/fuzz_mj_mut  $(CFILES) test/cJSON/mj_driver_mut.c
-
-fuzz_mj_rand : 
+fuzz_mj: $(CFILES)  
+	$(CC) -o bin/fuzz_mj_gry_mut $(CFILES) test/cJSON/mj_driver_gry_mut.c
+	$(CC) -o bin/fuzz_mj_blk_mut $(CFILES) test/cJSON/mj_driver_blk_mut.c
 	$(CC) -o bin/fuzz_mj_rand  $(CFILES) test/cJSON/mj_driver_rand.c
 
-fuzz_sy_mut : 
-	$(CC) -o bin/fuzz_sy_mut  $(CFILES) test/cJSON/sy_driver_mut.c
-
-fuzz_sy_rand : 
-	$(CC) -o bin/fuzz_sy_rand  $(CFILES) test/cJSON/sy_driver_rand.c
-
-fuzz_ji_mut : 
-	$(CC) -o bin/fuzz_ji_mut  $(CFILES) test/cJSON/ji_driver_mut.c
-
-fuzz_ji_rand : 
-	$(CC) -o bin/fuzz_ji_rand  $(CFILES) test/cJSON/ji_driver_rand.c
-
-fuzz_ws_mut : 
-	$(CC) -o bin/fuzz_ws_mut  $(CFILES) test/cJSON/ws_driver_mut.c
-
-fuzz_ws_rand : 
+fuzz_ws: $(CFILES)  
+	$(CC) -o bin/fuzz_ws_gry_mut $(CFILES) test/cJSON/ws_driver_gry_mut.c
+	$(CC) -o bin/fuzz_ws_blk_mut $(CFILES) test/cJSON/ws_driver_blk_mut.c
 	$(CC) -o bin/fuzz_ws_rand  $(CFILES) test/cJSON/ws_driver_rand.c
 
+fuzz_ji: $(CFILES)  
+	$(CC) -o bin/fuzz_ji_gry_mut $(CFILES) test/cJSON/ji_driver_gry_mut.c
+	$(CC) -o bin/fuzz_ji_blk_mut $(CFILES) test/cJSON/ji_driver_blk_mut.c
+	$(CC) -o bin/fuzz_ji_rand  $(CFILES) test/cJSON/ji_driver_rand.c
+
+fuzz_sy: $(CFILES)
+	$(CC) -o bin/fuzz_sy_gry_mut $(CFILES) test/cJSON/sy_driver_gry_mut.c
+	$(CC) -o bin/fuzz_sy_blk_mut $(CFILES) test/cJSON/sy_driver_blk_mut.c
+	$(CC) -o bin/fuzz_sy_rand  $(CFILES) test/cJSON/sy_driver_rand.c
 clean : 
 	rm -r bin/* tmp* ./*.c a.out 

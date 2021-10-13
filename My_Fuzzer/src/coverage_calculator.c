@@ -1,6 +1,7 @@
 #include "../include/coverage_calculator.h"
-
+#include <time.h>
 // #define DEBUG
+
 
 void
 free_N(void ** pp_allocated, int num)
@@ -63,7 +64,7 @@ read_gcov_coverage_with_bc_option(char * c_file, cov_info_t * pcov_info)
 
     while(fgets(line, MAX_LINE_IN_FILE, fp) != 0x0){
         if(strncmp(line, "branch", 6) == 0){
-
+			//printf("line : %s", line);
             char* tokens[4];
             tokens[0] = strtok(line, " ");
             
@@ -72,11 +73,13 @@ read_gcov_coverage_with_bc_option(char * c_file, cov_info_t * pcov_info)
             }
 
             if(strncmp(tokens[2], "never", 5) == 0 ){
-               bmap[branch_itr] = 0; 
+                bmap[branch_itr] = 0; 
             } else { 
                 int num = atoi(tokens[3]);
-				bmap[branch_itr] = (num > 0 ? 1 : 0);
-            }
+				bmap[branch_itr] = 1;
+				// bmap[branch_itr] = (num > 0 ? 1 : 0);
+			}
+            //printf("bmap[%d] : %d\n",branch_itr, bmap[branch_itr]);
             tot_branches++;
             tot_branches_covered += bmap[branch_itr++]; 
         } 
@@ -160,7 +163,7 @@ remove_gcda(char *filepath)
 int
 gcov_multiple(char ** src_array, int num_files, char * src_dir_path, cov_info_t ** ppcov_info)
 {
-    int tot_branches = 0;
+	int tot_branches = 0;
     char file_path[PATH_MAX];
     char abs_file_path[PATH_MAX];
     char abs_dir_path[PATH_MAX];
@@ -180,13 +183,11 @@ gcov_multiple(char ** src_array, int num_files, char * src_dir_path, cov_info_t 
             perror("Error in realpath in test_multi_source");
             exit(1);
         }
-
         exec_gcov_with_bc_option(abs_file_path, abs_dir_path);
-        
         // read coverage 
         int num_branches = read_gcov_coverage_with_bc_option(abs_file_path, ppcov_info[i]);
         
-        if(num_branches == -1){
+		if(num_branches == -1){
             continue;
         }
         tot_branches += num_branches;

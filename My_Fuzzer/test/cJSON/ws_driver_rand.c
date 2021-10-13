@@ -16,7 +16,7 @@ main(){
     config.timeout = 100000;
 
     
-    for(int i = 0; i < 10; i++){
+    for(int i = 0; i < 5; i++){
         fuzz_main(&config);
     }
 

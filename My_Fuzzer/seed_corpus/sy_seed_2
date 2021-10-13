@@ -1,19 +1,16 @@
-{
-    "name" : "code3",
-    "line_number" : 120.2,
-    "current_version" : 1.36,
-    "version_logs" : [
-        {  
-            "version" : 1.0,
-            "editor" : "seoye"
-        }, 
-        {  
-            "version" : 1.2,
-            "editor" : "anonymous"
-        },
-        {  
-            "version" : 1.31,
-            "editor" : "SY"
-        }
-    ]
-}
+<!DOCTYPE html>
+    <html>
+    <head>
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <style type="text/css">
+        html, body, iframe { margin: 0; padding: 0; height: 100%; }
+        iframe { display: block; width: 100%; border: none; }
+      </style>
+    <title>Application Error</title>
+    </head>
+    <body>
+      <iframe src="//s3.amazonaws.com/heroku_pages/error.html">
+        <p>Application Error</p>
+      </iframe>
+    </body>
+    </html>

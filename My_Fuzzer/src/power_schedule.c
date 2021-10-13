@@ -35,7 +35,7 @@ seed_init(pSeed_info_t seed_info, char * corpus_path)
             break;
         }
         if((fp = fopen(seed_path, "r")) == 0x0){
-            fprintf(stderr, "can't read seed_%d file\n", seed_info->num_seed);
+            fprintf(stderr, "can't read seed_%d file : %s\n" , seed_info->num_seed, strerror(errno));
             break;
         }
         
@@ -56,7 +56,9 @@ seed_init(pSeed_info_t seed_info, char * corpus_path)
 void
 add_seed(pSeed_info_t seed_info, char * str, int len, int energy)
 {
-    memcpy(seed_info->seeds[seed_info->num_seed].str, str, len);
+	//seed_info->seeds[seed_info->num_seed].str = (char *)a_malloc(sizeof(char) * (len + 1));
+    
+	memcpy(seed_info->seeds[seed_info->num_seed].str, str, len);
     seed_info->seeds[seed_info->num_seed].str[len] = '\0';
 
     seed_info->seeds[seed_info->num_seed].len = len;
@@ -125,7 +127,7 @@ make_seed_file(pSeed_info_t seed_info, char * corpus_path, char * str, int len, 
     seed_info->norm_energy tp be set.
 
     Return value : 
-    Index of seeds to use in fuzzer loop.
+    Isdandex of seeds to use in fuzzer loop.
 */
 int
 get_seed_ind(pSeed_info_t seed_info)

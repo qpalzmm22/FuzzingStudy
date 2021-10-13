@@ -101,7 +101,7 @@ insert_byte(char *src, int len, char *dest, int num_bytes)
 			switch(input_mode){	
 				// random
 				case 0 :
-					dest[ind + i] = rand() % (127-32) + 32;
+					dest[ind + i] = rand() % (127-32) + 32; // TODO:
 					break;
 
 				// Other offset 
@@ -249,7 +249,7 @@ run_mut(char * src, int len, char *dest, int num_bytes)
 {
 
     int (* fp[])(char* src, int len, char *dest, int num_bytes) 
-		= { delete_byte, insert_byte, change_byte};//flip_bit, simp_arith ,swap_known_ints, flip_byte };
+		= { delete_byte, insert_byte, change_byte}; //flip_bit, simp_arith ,swap_known_ints, flip_byte };
 
 	int mut_ind = rand() % 3  ;
 
