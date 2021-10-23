@@ -13,8 +13,8 @@ main(){
  	strcpy(config.prog_path, "/home/qpalzmm22/FuzzingStudy/My_Fuzzer/target/cJSON/ji/ji");
     strcpy(config.src_dir_path, "/home/qpalzmm22/FuzzingStudy/My_Fuzzer/target/cJSON/ji/");
     
-    config.max_trial = 5000;
-    config.timeout = 100000;
+    config.max_trial = 500000;
+    config.timeout = 10000000;
 
     
     for(int i = 0; i < 5; i++){
