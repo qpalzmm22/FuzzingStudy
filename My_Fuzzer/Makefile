@@ -1,5 +1,6 @@
 CC=gcc
 GDB=-g
+DEBUG=-DDEBUG
 
 CFILES=src/fuzzer.c
 CFILES+=src/fuzz_input_maker.c
@@ -17,17 +18,19 @@ fuzzinger_test : fuzz_mj fuzz_sy fuzz_ji fuzz_ws fuzz_my
 # MODULE TESTER BUILDS
 # Enable Debug in the source code to test each
 test_fuzz_input_maker : src/fuzz_input_maker.c
-	$(CC) -o bin/fuzz_input_maker src/fuzz_input_maker.c
+	$(CC) -o bin/fuzz_input_maker src/fuzz_input_maker.c 
 
 test_gcov_creater : src/gcov_creater.c
 	$(CC) -o bin/gcov_creater src/gcov_creater.c
 
 test_coverage_calculator : src/coverage_calculator.c src/gcov_creater.c
-	$(CC) -o bin/coverage_calculator src/coverage_calculator.c src/gcov_creater.c
+	$(CC) -o bin/coverage_calculator src/coverage_calculator.c src/gcov_creater.c 
 
 test_power_schedule : src/power_schedule.c src/utility.c
-	$(CC) -o bin/power_schedule src/power_schedule.c src/utility.c
+	$(CC) -o bin/power_schedule src/power_schedule.c src/utility.c 
 
+test_utility : src/utility.c
+	$(CC) -o bin/utility src/utility.c ${DEBUG}
 # MODULE TESTER BUILDS END
 
 #fuzz_url_parser : $(CFILES)

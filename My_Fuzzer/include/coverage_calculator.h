@@ -3,6 +3,7 @@
 
 #include "gcov_creater.h"
 #include "types.h"
+#include "utility.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,9 +26,8 @@ print_coverage(int * coverage);
 void
 print_branch_coverage(cov_info_t ** pb_info, int num_line_w_branches);
 
-
-int 
-read_gcov_coverage_with_bc_option(char * c_file, cov_info_t * pb_info);
+unsigned short 
+read_gcov_coverage_with_bc_option(char * c_file);
 
 int
 get_file_names(char *src_dirpath, char ** src_array);
@@ -35,8 +35,8 @@ get_file_names(char *src_dirpath, char ** src_array);
 int
 remove_gcda(char *filepath);
 
-int
-gcov_multiple(char ** src_array, int num_files, char * src_dir_path, cov_info_t ** pcov_info);
+unsigned short
+gcov_multiple(char ** src_array, int num_files, char * src_dir_path);
 
 char *
 extract_filename(char *filepath);

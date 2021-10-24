@@ -13,5 +13,7 @@ void * a_calloc(size_t nsize);
 
 void * a_malloc(size_t nsize);
 
+unsigned short sdmb_hash(char * str);
+
 #endif /* !_HAVE_UTILITY_H_ */
 

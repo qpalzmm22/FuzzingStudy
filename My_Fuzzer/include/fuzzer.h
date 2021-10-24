@@ -27,7 +27,7 @@
 
 char * create_tmp_dirs();
 
-int union_branch_cov(cov_info_t ** pp_cov_info);
+int union_branch_cov(unsigned short b_hash);
 
 void make_input_files(char* str, int len, char *in_data_path);
 int exec_process(char * str, int len, int itr, char *out_path, char *err_path);
@@ -40,5 +40,7 @@ void init_fuzzer(pConfig_t config);
 void signal_handler(int sig);
 void fuzz_main(pConfig_t config);
 
+void print_result();
+void write_log(char * log_dir_path, double time);
 
 #endif /* !_HAVE_FUZZER_H_ */

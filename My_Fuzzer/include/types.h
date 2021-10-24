@@ -1,7 +1,7 @@
 #ifndef _HAVE_TYPES_H_
 #define _HAVE_TYPES_H_
 
-#define MAX_BRANCH 1024
+#define MAX_BRANCH 65535 // size of unsigned short
 #define MAX_LINE_IN_FILE 1024
 
 #define MAX_SEED_FILES 1024
@@ -126,7 +126,8 @@ typedef struct _config{
 typedef struct _coverage_info{
     int tot_branches;
     int tot_branches_covered;
-    char bmap[MAX_BRANCH]; // info per branch 
+    unsigned short b_hash;
+	char bmap[MAX_BRANCH]; // info per branch 
 } cov_info_t, *pcov_info_t;
 
 typedef struct _result{
@@ -135,9 +136,8 @@ typedef struct _result{
     double loop_time;
     double exec_time;
     int char_n ;
-    int tot_branches;
-    int tot_branches_covered;
-    cov_info_t ** pp_union_cov;
+    int tot_sets;
+    unsigned short b_hashes[MAX_BRANCH];
 }result_t ,*pResult_t;
 
 

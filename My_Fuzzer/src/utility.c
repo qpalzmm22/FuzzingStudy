@@ -1,4 +1,5 @@
 #include "../include/utility.h"
+ 
 
 /*
     Description : 
@@ -74,4 +75,37 @@ a_malloc(size_t nsize)
     return tmp;
 }
 
+/*
+	Description :
+	This is simple hash function, it provides fair distribtution and fewer splits.
+	http://www.cse.yorku.ca/~oz/hash.html
+	hash(i) = hash(i - 1) * 65599 + str[i]
 
+	Retrun value:
+	2 byte long hash short 
+*/
+unsigned short
+sdmb_hash(char * str)
+{
+	unsigned short hash;
+	int c;
+	while(c = *str++){
+		hash = c + (hash << 6) + (hash << 16) - hash; 
+	}
+	return hash;
+}
+
+#ifdef DEBUG
+int main(){
+	char str[4];
+	str[0] = 1;
+	str[1] = 1;
+	str[2] = 1;
+	str[3] = 1;
+
+	printf("str: 0x%x\n", str);
+	printf("HASH : 0x%x\n", sdmb_hash(str));
+	return 0;
+}
+
+#endif /* DEBUG */
