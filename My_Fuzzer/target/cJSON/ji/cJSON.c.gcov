@@ -1,0 +1,1435 @@
+        -:    0:Source:cJSON.c
+        -:    0:Graph:/home/qpalzmm22/FuzzingStudy/My_Fuzzer/target/cJSON/ji/cJSON.gcno
+        -:    0:Data:/home/qpalzmm22/FuzzingStudy/My_Fuzzer/target/cJSON/ji/cJSON.gcda
+        -:    0:Runs:1
+        -:    0:Programs:1
+        -:    1:/*
+        -:    2:  Copyright (c) 2009-2017 Dave Gamble and cJSON contributors
+        -:    3:
+        -:    4:  Permission is hereby granted, free of charge, to any person obtaining a copy
+        -:    5:  of this software and associated documentation files (the "Software"), to deal
+        -:    6:  in the Software without restriction, including without limitation the rights
+        -:    7:  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+        -:    8:  copies of the Software, and to permit persons to whom the Software is
+        -:    9:  furnished to do so, subject to the following conditions:
+        -:   10:
+        -:   11:  The above copyright notice and this permission notice shall be included in
+        -:   12:  all copies or substantial portions of the Software.
+        -:   13:
+        -:   14:  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        -:   15:  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        -:   16:  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+        -:   17:  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+        -:   18:  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+        -:   19:  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+        -:   20:  THE SOFTWARE.
+        -:   21:*/
+        -:   22:
+        -:   23:/* cJSON */
+        -:   24:/* JSON parser in C. */
+        -:   25:
+        -:   26:/* disable warnings about old C89 functions in MSVC */
+        -:   27:#if !defined(_CRT_SECURE_NO_DEPRECATE) && defined(_MSC_VER)
+        -:   28:#define _CRT_SECURE_NO_DEPRECATE
+        -:   29:#endif
+        -:   30:
+        -:   31:#ifdef __GNUC__
+        -:   32:#pragma GCC visibility push(default)
+        -:   33:#endif
+        -:   34:#if defined(_MSC_VER)
+        -:   35:#pragma warning (push)
+        -:   36:/* disable warning about single line comments in system headers */
+        -:   37:#pragma warning (disable : 4001)
+        -:   38:#endif
+        -:   39:
+        -:   40:#include <string.h>
+        -:   41:#include <stdio.h>
+        -:   42:#include <math.h>
+        -:   43:#include <stdlib.h>
+        -:   44:#include <limits.h>
+        -:   45:#include <ctype.h>
+        -:   46:#include <float.h>
+        -:   47:
+        -:   48:#ifdef ENABLE_LOCALES
+        -:   49:#include <locale.h>
+        -:   50:#endif
+        -:   51:
+        -:   52:#if defined(_MSC_VER)
+        -:   53:#pragma warning (pop)
+        -:   54:#endif
+        -:   55:#ifdef __GNUC__
+        -:   56:#pragma GCC visibility pop
+        -:   57:#endif
+        -:   58:
+        -:   59:#include "cJSON.h"
+        -:   60:
+        -:   61:/* define our own boolean type */
+        -:   62:#ifdef true
+        -:   63:#undef true
+        -:   64:#endif
+        -:   65:#define true ((cJSON_bool)1)
+        -:   66:
+        -:   67:#ifdef false
+        -:   68:#undef false
+        -:   69:#endif
+        -:   70:#define false ((cJSON_bool)0)
+        -:   71:
+        -:   72:/* define isnan and isinf for ANSI C, if in C99 or above, isnan and isinf has been defined in math.h */
+        -:   73:#ifndef isinf
+        -:   74:#define isinf(d) (isnan((d - d)) && !isnan(d))
+        -:   75:#endif
+        -:   76:#ifndef isnan
+        -:   77:#define isnan(d) (d != d)
+        -:   78:#endif
+        -:   79:
+        -:   80:#ifndef NAN
+        -:   81:#ifdef _WIN32
+        -:   82:#define NAN sqrt(-1.0)
+        -:   83:#else
+        -:   84:#define NAN 0.0/0.0
+        -:   85:#endif
+        -:   86:#endif
+        -:   87:
+        -:   88:typedef struct {
+        -:   89:    const unsigned char *json;
+        -:   90:    size_t position;
+        -:   91:} error;
+        -:   92:static error global_error = { NULL, 0 };
+        -:   93:
+function cJSON_GetErrorPtr called 1 returned 100% blocks executed 100%
+        1:   94:CJSON_PUBLIC(const char *) cJSON_GetErrorPtr(void)
+        -:   95:{
+        1:   96:    return (const char*) (global_error.json + global_error.position);
+        -:   97:}
+        -:   98:
+function cJSON_GetStringValue called 0 returned 0% blocks executed 0%
+    #####:   99:CJSON_PUBLIC(char *) cJSON_GetStringValue(const cJSON * const item) 
+        -:  100:{
+    #####:  101:    if (!cJSON_IsString(item)) 
+call    0 never executed
+branch  1 never executed
+branch  2 never executed
+        -:  102:    {
+    #####:  103:        return NULL;
+        -:  104:    }
+        -:  105:
+    #####:  106:    return item->valuestring;
+        -:  107:}
+        -:  108:
+function cJSON_GetNumberValue called 0 returned 0% blocks executed 0%
+    #####:  109:CJSON_PUBLIC(double) cJSON_GetNumberValue(const cJSON * const item) 
+        -:  110:{
+    #####:  111:    if (!cJSON_IsNumber(item)) 
+call    0 never executed
+branch  1 never executed
+branch  2 never executed
+        -:  112:    {
+    #####:  113:        return (double) NAN;
+        -:  114:    }
+        -:  115:
+    #####:  116:    return item->valuedouble;
+        -:  117:}
+        -:  118:
+        -:  119:/* This is a safeguard to prevent copy-pasters from using incompatible C and header files */
+        -:  120:#if (CJSON_VERSION_MAJOR != 1) || (CJSON_VERSION_MINOR != 7) || (CJSON_VERSION_PATCH != 15)
+        -:  121:    #error cJSON.h and cJSON.c have different versions. Make sure that both have the same.
+        -:  122:#endif
+        -:  123:
+function cJSON_Version called 0 returned 0% blocks executed 0%
+    #####:  124:CJSON_PUBLIC(const char*) cJSON_Version(void)
+        -:  125:{
+        -:  126:    static char version[15];
+    #####:  127:    sprintf(version, "%i.%i.%i", CJSON_VERSION_MAJOR, CJSON_VERSION_MINOR, CJSON_VERSION_PATCH);
+        -:  128:
+    #####:  129:    return version;
+        -:  130:}
+        -:  131:
+        -:  132:/* Case insensitive string comparison, doesn't consider two NULL pointers equal though */
+function case_insensitive_strcmp called 0 returned 0% blocks executed 0%
+    #####:  133:static int case_insensitive_strcmp(const unsigned char *string1, const unsigned char *string2)
+        -:  134:{
+    #####:  135:    if ((string1 == NULL) || (string2 == NULL))
+branch  0 never executed
+branch  1 never executed
+branch  2 never executed
+branch  3 never executed
+        -:  136:    {
+    #####:  137:        return 1;
+        -:  138:    }
+        -:  139:
+    #####:  140:    if (string1 == string2)
+branch  0 never executed
+branch  1 never executed
+        -:  141:    {
+    #####:  142:        return 0;
+        -:  143:    }
+        -:  144:
+    #####:  145:    for(; tolower(*string1) == tolower(*string2); (void)string1++, string2++)
+branch  0 never executed
+branch  1 never executed
+        -:  146:    {
+    #####:  147:        if (*string1 == '\0')
+branch  0 never executed
+branch  1 never executed
+        -:  148:        {
+    #####:  149:            return 0;
+        -:  150:        }
+        -:  151:    }
+        -:  152:
+    #####:  153:    return tolower(*string1) - tolower(*string2);
+        -:  154:}
+        -:  155:
+        -:  156:typedef struct internal_hooks
+        -:  157:{
+        -:  158:    void *(CJSON_CDECL *allocate)(size_t size);
+        -:  159:    void (CJSON_CDECL *deallocate)(void *pointer);
+        -:  160:    void *(CJSON_CDECL *reallocate)(void *pointer, size_t size);
+        -:  161:} internal_hooks;
+        -:  162:
+        -:  163:#if defined(_MSC_VER)
+        -:  164:/* work around MSVC error C2322: '...' address of dllimport '...' is not static */
+        -:  165:static void * CJSON_CDECL internal_malloc(size_t size)
+        -:  166:{
+        -:  167:    return malloc(size);
+        -:  168:}
+        -:  169:static void CJSON_CDECL internal_free(void *pointer)
+        -:  170:{
+        -:  171:    free(pointer);
+        -:  172:}
+        -:  173:static void * CJSON_CDECL internal_realloc(void *pointer, size_t size)
+        -:  174:{
+        -:  175:    return realloc(pointer, size);
+        -:  176:}
+        -:  177:#else
+        -:  178:#define internal_malloc malloc
+        -:  179:#define internal_free free
+        -:  180:#define internal_realloc realloc
+        -:  181:#endif
+        -:  182:
+        -:  183:/* strlen of character literals resolved at compile time */
+        -:  184:#define static_strlen(string_literal) (sizeof(string_literal) - sizeof(""))
+        -:  185:
+        -:  186:static internal_hooks global_hooks = { internal_malloc, internal_free, internal_realloc };
+        -:  187:
+function cJSON_strdup called 0 returned 0% blocks executed 0%
+    #####:  188:static unsigned char* cJSON_strdup(const unsigned char* string, const internal_hooks * const hooks)
+        -:  189:{
+    #####:  190:    size_t length = 0;
+    #####:  191:    unsigned char *copy = NULL;
+        -:  192:
+    #####:  193:    if (string == NULL)
+branch  0 never executed
+branch  1 never executed
+        -:  194:    {
+    #####:  195:        return NULL;
+        -:  196:    }
+        -:  197:
+    #####:  198:    length = strlen((const char*)string) + sizeof("");
+    #####:  199:    copy = (unsigned char*)hooks->allocate(length);
+call    0 never executed
+    #####:  200:    if (copy == NULL)
+branch  0 never executed
+branch  1 never executed
+        -:  201:    {
+    #####:  202:        return NULL;
+        -:  203:    }
+    #####:  204:    memcpy(copy, string, length);
+        -:  205:
+    #####:  206:    return copy;
+        -:  207:}
+        -:  208:
+function cJSON_InitHooks called 0 returned 0% blocks executed 0%
+    #####:  209:CJSON_PUBLIC(void) cJSON_InitHooks(cJSON_Hooks* hooks)
+        -:  210:{
+    #####:  211:    if (hooks == NULL)
+branch  0 never executed
+branch  1 never executed
+        -:  212:    {
+        -:  213:        /* Reset hooks */
+    #####:  214:        global_hooks.allocate = malloc;
+    #####:  215:        global_hooks.deallocate = free;
+    #####:  216:        global_hooks.reallocate = realloc;
+    #####:  217:        return;
+        -:  218:    }
+        -:  219:
+    #####:  220:    global_hooks.allocate = malloc;
+    #####:  221:    if (hooks->malloc_fn != NULL)
+branch  0 never executed
+branch  1 never executed
+        -:  222:    {
+    #####:  223:        global_hooks.allocate = hooks->malloc_fn;
+        -:  224:    }
+        -:  225:
+    #####:  226:    global_hooks.deallocate = free;
+    #####:  227:    if (hooks->free_fn != NULL)
+branch  0 never executed
+branch  1 never executed
+        -:  228:    {
+    #####:  229:        global_hooks.deallocate = hooks->free_fn;
+        -:  230:    }
+        -:  231:
+        -:  232:    /* use realloc only if both free and malloc are used */
+    #####:  233:    global_hooks.reallocate = NULL;
+    #####:  234:    if ((global_hooks.allocate == malloc) && (global_hooks.deallocate == free))
+branch  0 never executed
+branch  1 never executed
+branch  2 never executed
+branch  3 never executed
+        -:  235:    {
+    #####:  236:        global_hooks.reallocate = realloc;
+        -:  237:    }
+        -:  238:}
+        -:  239:
+        -:  240:/* Internal constructor. */
+function cJSON_New_Item called 12 returned 100% blocks executed 100%
+       12:  241:static cJSON *cJSON_New_Item(const internal_hooks * const hooks)
+        -:  242:{
+       12:  243:    cJSON* node = (cJSON*)hooks->allocate(sizeof(cJSON));
+call    0 returned 12
+       12:  244:    if (node)
+branch  0 taken 12 (fallthrough)
+branch  1 taken 0
+        -:  245:    {
+       12:  246:        memset(node, '\0', sizeof(cJSON));
+        -:  247:    }
+        -:  248:
+       12:  249:    return node;
+        -:  250:}
+        -:  251:
+        -:  252:/* Delete a cJSON structure. */
+function cJSON_Delete called 7 returned 100% blocks executed 100%
+        7:  253:CJSON_PUBLIC(void) cJSON_Delete(cJSON *item)
+        -:  254:{
+        7:  255:    cJSON *next = NULL;
+       26:  256:    while (item != NULL)
+branch  0 taken 12
+branch  1 taken 7 (fallthrough)
+        -:  257:    {
+       12:  258:        next = item->next;
+       12:  259:        if (!(item->type & cJSON_IsReference) && (item->child != NULL))
+branch  0 taken 12 (fallthrough)
+branch  1 taken 0
+branch  2 taken 1 (fallthrough)
+branch  3 taken 11
+        -:  260:        {
+        1:  261:            cJSON_Delete(item->child);
+call    0 returned 1
+        -:  262:        }
+       12:  263:        if (!(item->type & cJSON_IsReference) && (item->valuestring != NULL))
+branch  0 taken 12 (fallthrough)
+branch  1 taken 0
+branch  2 taken 6 (fallthrough)
+branch  3 taken 6
+        -:  264:        {
+        6:  265:            global_hooks.deallocate(item->valuestring);
+call    0 returned 6
+        -:  266:        }
+       12:  267:        if (!(item->type & cJSON_StringIsConst) && (item->string != NULL))
+branch  0 taken 12 (fallthrough)
+branch  1 taken 0
+branch  2 taken 9 (fallthrough)
+branch  3 taken 3
+        -:  268:        {
+        9:  269:            global_hooks.deallocate(item->string);
+call    0 returned 9
+        -:  270:        }
+       12:  271:        global_hooks.deallocate(item);
+call    0 returned 12
+       12:  272:        item = next;
+        -:  273:    }
+        7:  274:}
+        -:  275:
+        -:  276:/* get the decimal point character of the current locale */
+function get_decimal_point called 0 returned 0% blocks executed 0%
+    #####:  277:static unsigned char get_decimal_point(void)
+        -:  278:{
+        -:  279:#ifdef ENABLE_LOCALES
+        -:  280:    struct lconv *lconv = localeconv();
+        -:  281:    return (unsigned char) lconv->decimal_point[0];
+        -:  282:#else
+    #####:  283:    return '.';
+        -:  284:#endif
+        -:  285:}
+        -:  286:
+        -:  287:typedef struct
+        -:  288:{
+        -:  289:    const unsigned char *content;
+        -:  290:    size_t length;
+        -:  291:    size_t offset;
+        -:  292:    size_t depth; /* How deeply nested (in arrays/objects) is the input at the current offset. */
+        -:  293:    internal_hooks hooks;
+        -:  294:} parse_buffer;
+        -:  295:
+        -:  296:/* check if the given size is left to read in a given parse buffer (starting with 1) */
+        -:  297:#define can_read(buffer, size) ((buffer != NULL) && (((buffer)->offset + size) <= (buffer)->length))
+        -:  298:/* check if the buffer can be accessed at the given index (starting with 0) */
+        -:  299:#define can_access_at_index(buffer, index) ((buffer != NULL) && (((buffer)->offset + index) < (buffer)->length))
+        -:  300:#define cannot_access_at_index(buffer, index) (!can_access_at_index(buffer, index))
+        -:  301:/* get a pointer to the buffer at the position */
+        -:  302:#define buffer_at_offset(buffer) ((buffer)->content + (buffer)->offset)
+        -:  303:
+        -:  304:/* Parse the input text to generate a number, and populate the result into item. */
+function parse_number called 0 returned 0% blocks executed 0%
+    #####:  305:static cJSON_bool parse_number(cJSON * const item, parse_buffer * const input_buffer)
+        -:  306:{
+    #####:  307:    double number = 0;
+    #####:  308:    unsigned char *after_end = NULL;
+        -:  309:    unsigned char number_c_string[64];
+    #####:  310:    unsigned char decimal_point = get_decimal_point();
+call    0 never executed
+    #####:  311:    size_t i = 0;
+        -:  312:
+    #####:  313:    if ((input_buffer == NULL) || (input_buffer->content == NULL))
+branch  0 never executed
+branch  1 never executed
+branch  2 never executed
+branch  3 never executed
+        -:  314:    {
+    #####:  315:        return false;
+        -:  316:    }
+        -:  317:
+        -:  318:    /* copy the number into a temporary buffer and replace '.' with the decimal point
+        -:  319:     * of the current locale (for strtod)
+        -:  320:     * This also takes care of '\0' not necessarily being available for marking the end of the input */
+    #####:  321:    for (i = 0; (i < (sizeof(number_c_string) - 1)) && can_access_at_index(input_buffer, i); i++)
+branch  0 never executed
+branch  1 never executed
+branch  2 never executed
+branch  3 never executed
+branch  4 never executed
+branch  5 never executed
+        -:  322:    {
+    #####:  323:        switch (buffer_at_offset(input_buffer)[i])
+branch  0 never executed
+branch  1 never executed
+branch  2 never executed
+        -:  324:        {
+    #####:  325:            case '0':
+        -:  326:            case '1':
+        -:  327:            case '2':
+        -:  328:            case '3':
+        -:  329:            case '4':
+        -:  330:            case '5':
+        -:  331:            case '6':
+        -:  332:            case '7':
+        -:  333:            case '8':
+        -:  334:            case '9':
+        -:  335:            case '+':
+        -:  336:            case '-':
+        -:  337:            case 'e':
+        -:  338:            case 'E':
+    #####:  339:                number_c_string[i] = buffer_at_offset(input_buffer)[i];
+    #####:  340:                break;
+        -:  341:
+    #####:  342:            case '.':
+    #####:  343:                number_c_string[i] = decimal_point;
+    #####:  344:                break;
+        -:  345:
+    #####:  346:            default:
+    #####:  347:                goto loop_end;
+        -:  348:        }
+        -:  349:    }
+    #####:  350:loop_end:
+    #####:  351:    number_c_string[i] = '\0';
+        -:  352:
+    #####:  353:    number = strtod((const char*)number_c_string, (char**)&after_end);
+call    0 never executed
+    #####:  354:    if (number_c_string == after_end)
+branch  0 never executed
+branch  1 never executed
+        -:  355:    {
+    #####:  356:        return false; /* parse_error */
+        -:  357:    }
+        -:  358:
+    #####:  359:    item->valuedouble = number;
+        -:  360:
+        -:  361:    /* use saturation in case of overflow */
+    #####:  362:    if (number >= INT_MAX)
+branch  0 never executed
+branch  1 never executed
+        -:  363:    {
+    #####:  364:        item->valueint = INT_MAX;
+        -:  365:    }
+    #####:  366:    else if (number <= (double)INT_MIN)
+branch  0 never executed
+branch  1 never executed
+        -:  367:    {
+    #####:  368:        item->valueint = INT_MIN;
+        -:  369:    }
+        -:  370:    else
+        -:  371:    {
+    #####:  372:        item->valueint = (int)number;
+        -:  373:    }
+        -:  374:
+    #####:  375:    item->type = cJSON_Number;
+        -:  376:
+    #####:  377:    input_buffer->offset += (size_t)(after_end - number_c_string);
+    #####:  378:    return true;
+        -:  379:}
+        -:  380:
+        -:  381:/* don't ask me, but the original cJSON_SetNumberValue returns an integer or double */
+function cJSON_SetNumberHelper called 0 returned 0% blocks executed 0%
+    #####:  382:CJSON_PUBLIC(double) cJSON_SetNumberHelper(cJSON *object, double number)
+        -:  383:{
+    #####:  384:    if (number >= INT_MAX)
+branch  0 never executed
+branch  1 never executed
+        -:  385:    {
+    #####:  386:        object->valueint = INT_MAX;
+        -:  387:    }
+    #####:  388:    else if (number <= (double)INT_MIN)
+branch  0 never executed
+branch  1 never executed
+        -:  389:    {
+    #####:  390:        object->valueint = INT_MIN;
+        -:  391:    }
+        -:  392:    else
+        -:  393:    {
+    #####:  394:        object->valueint = (int)number;
+        -:  395:    }
+        -:  396:
+    #####:  397:    return object->valuedouble = number;
+        -:  398:}
+        -:  399:
+function cJSON_SetValuestring called 0 returned 0% blocks executed 0%
+    #####:  400:CJSON_PUBLIC(char*) cJSON_SetValuestring(cJSON *object, const char *valuestring)
+        -:  401:{
+    #####:  402:    char *copy = NULL;
+        -:  403:    /* if object's type is not cJSON_String or is cJSON_IsReference, it should not set valuestring */
+    #####:  404:    if (!(object->type & cJSON_String) || (object->type & cJSON_IsReference))
+branch  0 never executed
+branch  1 never executed
+branch  2 never executed
+branch  3 never executed
+        -:  405:    {
+    #####:  406:        return NULL;
+        -:  407:    }
+    #####:  408:    if (strlen(valuestring) <= strlen(object->valuestring))
+branch  0 never executed
+branch  1 never executed
+        -:  409:    {
+    #####:  410:        strcpy(object->valuestring, valuestring);
+    #####:  411:        return object->valuestring;
+        -:  412:    }
+    #####:  413:    copy = (char*) cJSON_strdup((const unsigned char*)valuestring, &global_hooks);
+call    0 never executed
+    #####:  414:    if (copy == NULL)
+branch  0 never executed
+branch  1 never executed
+        -:  415:    {
+    #####:  416:        return NULL;
+        -:  417:    }
+    #####:  418:    if (object->valuestring != NULL)
+branch  0 never executed
+branch  1 never executed
+        -:  419:    {
+    #####:  420:        cJSON_free(object->valuestring);
+call    0 never executed
+        -:  421:    }
+    #####:  422:    object->valuestring = copy;
+        -:  423:
+    #####:  424:    return copy;
+        -:  425:}
+        -:  426:
+        -:  427:typedef struct
+        -:  428:{
+        -:  429:    unsigned char *buffer;
+        -:  430:    size_t length;
+        -:  431:    size_t offset;
+        -:  432:    size_t depth; /* current nesting depth (for formatted printing) */
+        -:  433:    cJSON_bool noalloc;
+        -:  434:    cJSON_bool format; /* is this print a formatted print */
+        -:  435:    internal_hooks hooks;
+        -:  436:} printbuffer;
+        -:  437:
+        -:  438:/* realloc printbuffer if necessary to have at least "needed" bytes more */
+function ensure called 0 returned 0% blocks executed 0%
+    #####:  439:static unsigned char* ensure(printbuffer * const p, size_t needed)
+        -:  440:{
+    #####:  441:    unsigned char *newbuffer = NULL;
+    #####:  442:    size_t newsize = 0;
+        -:  443:
+    #####:  444:    if ((p == NULL) || (p->buffer == NULL))
+branch  0 never executed
+branch  1 never executed
+branch  2 never executed
+branch  3 never executed
+        -:  445:    {
+    #####:  446:        return NULL;
+        -:  447:    }
+        -:  448:
+    #####:  449:    if ((p->length > 0) && (p->offset >= p->length))
+branch  0 never executed
+branch  1 never executed
+branch  2 never executed
+branch  3 never executed
+        -:  450:    {
+        -:  451:        /* make sure that offset is valid */
+    #####:  452:        return NULL;
+        -:  453:    }
+        -:  454:
+    #####:  455:    if (needed > INT_MAX)
+branch  0 never executed
+branch  1 never executed
+        -:  456:    {
+        -:  457:        /* sizes bigger than INT_MAX are currently not supported */
+    #####:  458:        return NULL;
+        -:  459:    }
+        -:  460:
+    #####:  461:    needed += p->offset + 1;
+    #####:  462:    if (needed <= p->length)
+branch  0 never executed
+branch  1 never executed
+        -:  463:    {
+    #####:  464:        return p->buffer + p->offset;
+        -:  465:    }
+        -:  466:
+    #####:  467:    if (p->noalloc) {
+branch  0 never executed
+branch  1 never executed
+    #####:  468:        return NULL;
+        -:  469:    }
+        -:  470:
+        -:  471:    /* calculate new buffer size */
+    #####:  472:    if (needed > (INT_MAX / 2))
+branch  0 never executed
+branch  1 never executed
+        -:  473:    {
+        -:  474:        /* overflow of int, use INT_MAX if possible */
+    #####:  475:        if (needed <= INT_MAX)
+branch  0 never executed
+branch  1 never executed
+        -:  476:        {
+    #####:  477:            newsize = INT_MAX;
+        -:  478:        }
+        -:  479:        else
+        -:  480:        {
+    #####:  481:            return NULL;
+        -:  482:        }
+        -:  483:    }
+        -:  484:    else
+        -:  485:    {
+    #####:  486:        newsize = needed * 2;
+        -:  487:    }
+        -:  488:
+    #####:  489:    if (p->hooks.reallocate != NULL)
+branch  0 never executed
+branch  1 never executed
+        -:  490:    {
+        -:  491:        /* reallocate with realloc if available */
+    #####:  492:        newbuffer = (unsigned char*)p->hooks.reallocate(p->buffer, newsize);
+call    0 never executed
+    #####:  493:        if (newbuffer == NULL)
+branch  0 never executed
+branch  1 never executed
+        -:  494:        {
+    #####:  495:            p->hooks.deallocate(p->buffer);
+call    0 never executed
+    #####:  496:            p->length = 0;
+    #####:  497:            p->buffer = NULL;
+        -:  498:
+    #####:  499:            return NULL;
+        -:  500:        }
+        -:  501:    }
+        -:  502:    else
+        -:  503:    {
+        -:  504:        /* otherwise reallocate manually */
+    #####:  505:        newbuffer = (unsigned char*)p->hooks.allocate(newsize);
+call    0 never executed
+    #####:  506:        if (!newbuffer)
+branch  0 never executed
+branch  1 never executed
+        -:  507:        {
+    #####:  508:            p->hooks.deallocate(p->buffer);
+call    0 never executed
+    #####:  509:            p->length = 0;
+    #####:  510:            p->buffer = NULL;
+        -:  511:
+    #####:  512:            return NULL;
+        -:  513:        }
+        -:  514:        
+    #####:  515:        memcpy(newbuffer, p->buffer, p->offset + 1);
+    #####:  516:        p->hooks.deallocate(p->buffer);
+call    0 never executed
+        -:  517:    }
+    #####:  518:    p->length = newsize;
+    #####:  519:    p->buffer = newbuffer;
+        -:  520:
+    #####:  521:    return newbuffer + p->offset;
+        -:  522:}
+        -:  523:
+        -:  524:/* calculate the new length of the string in a printbuffer and update the offset */
+function update_offset called 0 returned 0% blocks executed 0%
+    #####:  525:static void update_offset(printbuffer * const buffer)
+        -:  526:{
+    #####:  527:    const unsigned char *buffer_pointer = NULL;
+    #####:  528:    if ((buffer == NULL) || (buffer->buffer == NULL))
+branch  0 never executed
+branch  1 never executed
+branch  2 never executed
+branch  3 never executed
+        -:  529:    {
+    #####:  530:        return;
+        -:  531:    }
+    #####:  532:    buffer_pointer = buffer->buffer + buffer->offset;
+        -:  533:
+    #####:  534:    buffer->offset += strlen((const char*)buffer_pointer);
+        -:  535:}
+        -:  536:
+        -:  537:/* securely comparison of floating-point variables */
+function compare_double called 0 returned 0% blocks executed 0%
+    #####:  538:static cJSON_bool compare_double(double a, double b)
+        -:  539:{
+    #####:  540:    double maxVal = fabs(a) > fabs(b) ? fabs(a) : fabs(b);
+branch  0 never executed
+branch  1 never executed
+    #####:  541:    return (fabs(a - b) <= maxVal * DBL_EPSILON);
+        -:  542:}
+        -:  543:
+        -:  544:/* Render the number nicely from the given item into a string. */
+function print_number called 0 returned 0% blocks executed 0%
+    #####:  545:static cJSON_bool print_number(const cJSON * const item, printbuffer * const output_buffer)
+        -:  546:{
+    #####:  547:    unsigned char *output_pointer = NULL;
+    #####:  548:    double d = item->valuedouble;
+    #####:  549:    int length = 0;
+    #####:  550:    size_t i = 0;
+    #####:  551:    unsigned char number_buffer[26] = {0}; /* temporary buffer to print the number into */
+    #####:  552:    unsigned char decimal_point = get_decimal_point();
+call    0 never executed
+    #####:  553:    double test = 0.0;
+        -:  554:
+    #####:  555:    if (output_buffer == NULL)
+branch  0 never executed
+branch  1 never executed
+        -:  556:    {
+    #####:  557:        return false;
+        -:  558:    }
+        -:  559:
+        -:  560:    /* This checks for NaN and Infinity */
+    #####:  561:    if (isnan(d) || isinf(d))
+branch  0 never executed
+branch  1 never executed
+branch  2 never executed
+branch  3 never executed
+        -:  562:    {
+    #####:  563:        length = sprintf((char*)number_buffer, "null");
+        -:  564:    }
+        -:  565:    else
+        -:  566:    {
+        -:  567:        /* Try 15 decimal places of precision to avoid nonsignificant nonzero digits */
+    #####:  568:        length = sprintf((char*)number_buffer, "%1.15g", d);
+        -:  569:
+        -:  570:        /* Check whether the original double can be recovered */
+    #####:  571:        if ((sscanf((char*)number_buffer, "%lg", &test) != 1) || !compare_double((double)test, d))
+branch  0 never executed
+branch  1 never executed
+call    2 never executed
+branch  3 never executed
+branch  4 never executed
+        -:  572:        {
+        -:  573:            /* If not, print with 17 decimal places of precision */
+    #####:  574:            length = sprintf((char*)number_buffer, "%1.17g", d);
+        -:  575:        }
+        -:  576:    }
+        -:  577:
+        -:  578:    /* sprintf failed or buffer overrun occurred */
+    #####:  579:    if ((length < 0) || (length > (int)(sizeof(number_buffer) - 1)))
+branch  0 never executed
+branch  1 never executed
+branch  2 never executed
+branch  3 never executed
+        -:  580:    {
+    #####:  581:        return false;
+        -:  582:    }
+        -:  583:
+        -:  584:    /* reserve appropriate space in the output */
+    #####:  585:    output_pointer = ensure(output_buffer, (size_t)length + sizeof(""));
+call    0 never executed
+    #####:  586:    if (output_pointer == NULL)
+branch  0 never executed
+branch  1 never executed
+        -:  587:    {
+    #####:  588:        return false;
+        -:  589:    }
+        -:  590:
+        -:  591:    /* copy the printed number to the output and replace locale
+        -:  592:     * dependent decimal point with '.' */
+    #####:  593:    for (i = 0; i < ((size_t)length); i++)
+branch  0 never executed
+branch  1 never executed
+        -:  594:    {
+    #####:  595:        if (number_buffer[i] == decimal_point)
+branch  0 never executed
+branch  1 never executed
+        -:  596:        {
+    #####:  597:            output_pointer[i] = '.';
+    #####:  598:            continue;
+        -:  599:        }
+        -:  600:
+    #####:  601:        output_pointer[i] = number_buffer[i];
+        -:  602:    }
+    #####:  603:    output_pointer[i] = '\0';
+        -:  604:
+    #####:  605:    output_buffer->offset += (size_t)length;
+        -:  606:
+    #####:  607:    return true;
+        -:  608:}
+        -:  609:
+        -:  610:/* parse 4 digit hexadecimal number */
+function parse_hex4 called 0 returned 0% blocks executed 0%
+    #####:  611:static unsigned parse_hex4(const unsigned char * const input)
+        -:  612:{
+    #####:  613:    unsigned int h = 0;
+    #####:  614:    size_t i = 0;
+        -:  615:
+    #####:  616:    for (i = 0; i < 4; i++)
+branch  0 never executed
+branch  1 never executed
+        -:  617:    {
+        -:  618:        /* parse digit */
+    #####:  619:        if ((input[i] >= '0') && (input[i] <= '9'))
+branch  0 never executed
+branch  1 never executed
+branch  2 never executed
+branch  3 never executed
+        -:  620:        {
+    #####:  621:            h += (unsigned int) input[i] - '0';
+        -:  622:        }
+    #####:  623:        else if ((input[i] >= 'A') && (input[i] <= 'F'))
+branch  0 never executed
+branch  1 never executed
+branch  2 never executed
+branch  3 never executed
+        -:  624:        {
+    #####:  625:            h += (unsigned int) 10 + input[i] - 'A';
+        -:  626:        }
+    #####:  627:        else if ((input[i] >= 'a') && (input[i] <= 'f'))
+branch  0 never executed
+branch  1 never executed
+branch  2 never executed
+branch  3 never executed
+        -:  628:        {
+    #####:  629:            h += (unsigned int) 10 + input[i] - 'a';
+        -:  630:        }
+        -:  631:        else /* invalid */
+        -:  632:        {
+    #####:  633:            return 0;
+        -:  634:        }
+        -:  635:
+    #####:  636:        if (i < 3)
+branch  0 never executed
+branch  1 never executed
+        -:  637:        {
+        -:  638:            /* shift left to make place for the next nibble */
+    #####:  639:            h = h << 4;
+        -:  640:        }
+        -:  641:    }
+        -:  642:
+    #####:  643:    return h;
+        -:  644:}
+        -:  645:
+        -:  646:/* converts a UTF-16 literal to UTF-8
+        -:  647: * A literal can be one or two sequences of the form \uXXXX */
+function utf16_literal_to_utf8 called 0 returned 0% blocks executed 0%
+    #####:  648:static unsigned char utf16_literal_to_utf8(const unsigned char * const input_pointer, const unsigned char * const input_end, unsigned char **output_pointer)
+        -:  649:{
+    #####:  650:    long unsigned int codepoint = 0;
+    #####:  651:    unsigned int first_code = 0;
+    #####:  652:    const unsigned char *first_sequence = input_pointer;
+    #####:  653:    unsigned char utf8_length = 0;
+    #####:  654:    unsigned char utf8_position = 0;
+    #####:  655:    unsigned char sequence_length = 0;
+    #####:  656:    unsigned char first_byte_mark = 0;
+        -:  657:
+    #####:  658:    if ((input_end - first_sequence) < 6)
+branch  0 never executed
+branch  1 never executed
+        -:  659:    {
+        -:  660:        /* input ends unexpectedly */
+    #####:  661:        goto fail;
+        -:  662:    }
+        -:  663:
+        -:  664:    /* get the first utf16 sequence */
+    #####:  665:    first_code = parse_hex4(first_sequence + 2);
+call    0 never executed
+        -:  666:
+        -:  667:    /* check that the code is valid */
+    #####:  668:    if (((first_code >= 0xDC00) && (first_code <= 0xDFFF)))
+branch  0 never executed
+branch  1 never executed
+branch  2 never executed
+branch  3 never executed
+        -:  669:    {
+    #####:  670:        goto fail;
+        -:  671:    }
+        -:  672:
+        -:  673:    /* UTF16 surrogate pair */
+    #####:  674:    if ((first_code >= 0xD800) && (first_code <= 0xDBFF))
+branch  0 never executed
+branch  1 never executed
+branch  2 never executed
+branch  3 never executed
+    #####:  675:    {
+    #####:  676:        const unsigned char *second_sequence = first_sequence + 6;
+    #####:  677:        unsigned int second_code = 0;
+    #####:  678:        sequence_length = 12; /* \uXXXX\uXXXX */
+        -:  679:
+    #####:  680:        if ((input_end - second_sequence) < 6)
+branch  0 never executed
+branch  1 never executed
+        -:  681:        {
+        -:  682:            /* input ends unexpectedly */
+    #####:  683:            goto fail;
+        -:  684:        }
+        -:  685:
+    #####:  686:        if ((second_sequence[0] != '\\') || (second_sequence[1] != 'u'))
+branch  0 never executed
+branch  1 never executed
+branch  2 never executed
+branch  3 never executed
+        -:  687:        {
+        -:  688:            /* missing second half of the surrogate pair */
+        -:  689:            goto fail;
+        -:  690:        }
+        -:  691:
+        -:  692:        /* get the second utf16 sequence */
+    #####:  693:        second_code = parse_hex4(second_sequence + 2);
+call    0 never executed
+        -:  694:        /* check that the code is valid */
+    #####:  695:        if ((second_code < 0xDC00) || (second_code > 0xDFFF))
+branch  0 never executed
+branch  1 never executed
+branch  2 never executed
+branch  3 never executed
+        -:  696:        {
+        -:  697:            /* invalid second half of the surrogate pair */
+        -:  698:            goto fail;
+        -:  699:        }
+        -:  700:
+        -:  701:
+        -:  702:        /* calculate the unicode codepoint from the surrogate pair */
+    #####:  703:        codepoint = 0x10000 + (((first_code & 0x3FF) << 10) | (second_code & 0x3FF));
+        -:  704:    }
+        -:  705:    else
+        -:  706:    {
+    #####:  707:        sequence_length = 6; /* \uXXXX */
+    #####:  708:        codepoint = first_code;
+        -:  709:    }
+        -:  710:
+        -:  711:    /* encode as UTF-8
+        -:  712:     * takes at maximum 4 bytes to encode:
+        -:  713:     * 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx */
+    #####:  714:    if (codepoint < 0x80)
+branch  0 never executed
+branch  1 never executed
+        -:  715:    {
+        -:  716:        /* normal ascii, encoding 0xxxxxxx */
+    #####:  717:        utf8_length = 1;
+        -:  718:    }
+    #####:  719:    else if (codepoint < 0x800)
+branch  0 never executed
+branch  1 never executed
+        -:  720:    {
+        -:  721:        /* two bytes, encoding 110xxxxx 10xxxxxx */
+    #####:  722:        utf8_length = 2;
+    #####:  723:        first_byte_mark = 0xC0; /* 11000000 */
+        -:  724:    }
+    #####:  725:    else if (codepoint < 0x10000)
+branch  0 never executed
+branch  1 never executed
+        -:  726:    {
+        -:  727:        /* three bytes, encoding 1110xxxx 10xxxxxx 10xxxxxx */
+    #####:  728:        utf8_length = 3;
+    #####:  729:        first_byte_mark = 0xE0; /* 11100000 */
+        -:  730:    }
+    #####:  731:    else if (codepoint <= 0x10FFFF)
+branch  0 never executed
+branch  1 never executed
+        -:  732:    {
+        -:  733:        /* four bytes, encoding 1110xxxx 10xxxxxx 10xxxxxx 10xxxxxx */
+    #####:  734:        utf8_length = 4;
+    #####:  735:        first_byte_mark = 0xF0; /* 11110000 */
+        -:  736:    }
+        -:  737:    else
+        -:  738:    {
+        -:  739:        /* invalid unicode codepoint */
+    #####:  740:        goto fail;
+        -:  741:    }
+        -:  742:
+        -:  743:    /* encode as utf8 */
+    #####:  744:    for (utf8_position = (unsigned char)(utf8_length - 1); utf8_position > 0; utf8_position--)
+branch  0 never executed
+branch  1 never executed
+        -:  745:    {
+        -:  746:        /* 10xxxxxx */
+    #####:  747:        (*output_pointer)[utf8_position] = (unsigned char)((codepoint | 0x80) & 0xBF);
+    #####:  748:        codepoint >>= 6;
+        -:  749:    }
+        -:  750:    /* encode first byte */
+    #####:  751:    if (utf8_length > 1)
+branch  0 never executed
+branch  1 never executed
+        -:  752:    {
+    #####:  753:        (*output_pointer)[0] = (unsigned char)((codepoint | first_byte_mark) & 0xFF);
+        -:  754:    }
+        -:  755:    else
+        -:  756:    {
+    #####:  757:        (*output_pointer)[0] = (unsigned char)(codepoint & 0x7F);
+        -:  758:    }
+        -:  759:
+    #####:  760:    *output_pointer += utf8_length;
+        -:  761:
+    #####:  762:    return sequence_length;
+        -:  763:
+    #####:  764:fail:
+    #####:  765:    return 0;
+        -:  766:}
+        -:  767:
+        -:  768:/* Parse the input text into an unescaped cinput, and populate item. */
+function parse_string called 15 returned 100% blocks executed 39%
+       15:  769:static cJSON_bool parse_string(cJSON * const item, parse_buffer * const input_buffer)
+        -:  770:{
+       15:  771:    const unsigned char *input_pointer = buffer_at_offset(input_buffer) + 1;
+       15:  772:    const unsigned char *input_end = buffer_at_offset(input_buffer) + 1;
+       15:  773:    unsigned char *output_pointer = NULL;
+       15:  774:    unsigned char *output = NULL;
+        -:  775:
+        -:  776:    /* not a string */
+       15:  777:    if (buffer_at_offset(input_buffer)[0] != '\"')
+branch  0 taken 0 (fallthrough)
+branch  1 taken 15
+        -:  778:    {
+    #####:  779:        goto fail;
+        -:  780:    }
+        -:  781:
+        -:  782:    {
+        -:  783:        /* calculate approximate size of the output (overestimate) */
+       15:  784:        size_t allocation_length = 0;
+       15:  785:        size_t skipped_bytes = 0;
+      127:  786:        while (((size_t)(input_end - input_buffer->content) < input_buffer->length) && (*input_end != '\"'))
+branch  0 taken 112 (fallthrough)
+branch  1 taken 0
+branch  2 taken 97
+branch  3 taken 15 (fallthrough)
+        -:  787:        {
+        -:  788:            /* is escape sequence */
+       97:  789:            if (input_end[0] == '\\')
+branch  0 taken 0 (fallthrough)
+branch  1 taken 97
+        -:  790:            {
+    #####:  791:                if ((size_t)(input_end + 1 - input_buffer->content) >= input_buffer->length)
+branch  0 never executed
+branch  1 never executed
+        -:  792:                {
+        -:  793:                    /* prevent buffer overflow when last input character is a backslash */
+    #####:  794:                    goto fail;
+        -:  795:                }
+    #####:  796:                skipped_bytes++;
+    #####:  797:                input_end++;
+        -:  798:            }
+       97:  799:            input_end++;
+        -:  800:        }
+       15:  801:        if (((size_t)(input_end - input_buffer->content) >= input_buffer->length) || (*input_end != '\"'))
+branch  0 taken 15 (fallthrough)
+branch  1 taken 0
+branch  2 taken 0 (fallthrough)
+branch  3 taken 15
+        -:  802:        {
+        -:  803:            goto fail; /* string ended unexpectedly */
+        -:  804:        }
+        -:  805:
+        -:  806:        /* This is at most how much we need for the output */
+       15:  807:        allocation_length = (size_t) (input_end - buffer_at_offset(input_buffer)) - skipped_bytes;
+       15:  808:        output = (unsigned char*)input_buffer->hooks.allocate(allocation_length + sizeof(""));
+call    0 returned 15
+       15:  809:        if (output == NULL)
+branch  0 taken 0 (fallthrough)
+branch  1 taken 15
+        -:  810:        {
+    #####:  811:            goto fail; /* allocation failure */
+        -:  812:        }
+        -:  813:    }
+        -:  814:
+       15:  815:    output_pointer = output;
+        -:  816:    /* loop through the string literal */
+      127:  817:    while (input_pointer < input_end)
+branch  0 taken 97
+branch  1 taken 15 (fallthrough)
+        -:  818:    {
+       97:  819:        if (*input_pointer != '\\')
+branch  0 taken 97 (fallthrough)
+branch  1 taken 0
+        -:  820:        {
+       97:  821:            *output_pointer++ = *input_pointer++;
+        -:  822:        }
+        -:  823:        /* escape sequence */
+        -:  824:        else
+        -:  825:        {
+    #####:  826:            unsigned char sequence_length = 2;
+    #####:  827:            if ((input_end - input_pointer) < 1)
+branch  0 never executed
+branch  1 never executed
+        -:  828:            {
+    #####:  829:                goto fail;
+        -:  830:            }
+        -:  831:
+    #####:  832:            switch (input_pointer[1])
+branch  0 never executed
+branch  1 never executed
+branch  2 never executed
+branch  3 never executed
+branch  4 never executed
+branch  5 never executed
+branch  6 never executed
+branch  7 never executed
+        -:  833:            {
+    #####:  834:                case 'b':
+    #####:  835:                    *output_pointer++ = '\b';
+    #####:  836:                    break;
+    #####:  837:                case 'f':
+    #####:  838:                    *output_pointer++ = '\f';
+    #####:  839:                    break;
+    #####:  840:                case 'n':
+    #####:  841:                    *output_pointer++ = '\n';
+    #####:  842:                    break;
+    #####:  843:                case 'r':
+    #####:  844:                    *output_pointer++ = '\r';
+    #####:  845:                    break;
+    #####:  846:                case 't':
+    #####:  847:                    *output_pointer++ = '\t';
+    #####:  848:                    break;
+    #####:  849:                case '\"':
+        -:  850:                case '\\':
+        -:  851:                case '/':
+    #####:  852:                    *output_pointer++ = input_pointer[1];
+    #####:  853:                    break;
+        -:  854:
+        -:  855:                /* UTF-16 literal */
+    #####:  856:                case 'u':
+    #####:  857:                    sequence_length = utf16_literal_to_utf8(input_pointer, input_end, &output_pointer);
+call    0 never executed
+    #####:  858:                    if (sequence_length == 0)
+branch  0 never executed
+branch  1 never executed
+        -:  859:                    {
+        -:  860:                        /* failed to convert UTF16-literal to UTF-8 */
+    #####:  861:                        goto fail;
+        -:  862:                    }
+    #####:  863:                    break;
+        -:  864:
+    #####:  865:                default:
+    #####:  866:                    goto fail;
+        -:  867:            }
+    #####:  868:            input_pointer += sequence_length;
+        -:  869:        }
+        -:  870:    }
+        -:  871:
+        -:  872:    /* zero terminate the output */
+       15:  873:    *output_pointer = '\0';
+        -:  874:
+       15:  875:    item->type = cJSON_String;
+       15:  876:    item->valuestring = (char*)output;
+        -:  877:
+       15:  878:    input_buffer->offset = (size_t) (input_end - input_buffer->content);
+       15:  879:    input_buffer->offset++;
+        -:  880:
+       15:  881:    return true;
+        -:  882:
+    #####:  883:fail:
+    #####:  884:    if (output != NULL)
+branch  0 never executed
+branch  1 never executed
+        -:  885:    {
+    #####:  886:        input_buffer->hooks.deallocate(output);
+call    0 never executed
+        -:  887:    }
+        -:  888:
+    #####:  889:    if (input_pointer != NULL)
+branch  0 never executed
+branch  1 never executed
+        -:  890:    {
+    #####:  891:        input_buffer->offset = (size_t)(input_pointer - input_buffer->content);
+        -:  892:    }
+        -:  893:
+    #####:  894:    return false;
+        -:  895:}
+        -:  896:
+        -:  897:/* Render the cstring provided to an escaped version that can be printed. */
+function print_string_ptr called 0 returned 0% blocks executed 0%
+    #####:  898:static cJSON_bool print_string_ptr(const unsigned char * const input, printbuffer * const output_buffer)
+        -:  899:{
+    #####:  900:    const unsigned char *input_pointer = NULL;
+    #####:  901:    unsigned char *output = NULL;
+    #####:  902:    unsigned char *output_pointer = NULL;
+    #####:  903:    size_t output_length = 0;
+        -:  904:    /* numbers of additional characters needed for escaping */
+    #####:  905:    size_t escape_characters = 0;
+        -:  906:
+    #####:  907:    if (output_buffer == NULL)
+branch  0 never executed
+branch  1 never executed
+        -:  908:    {
+    #####:  909:        return false;
+        -:  910:    }
+        -:  911:
+        -:  912:    /* empty string */
+    #####:  913:    if (input == NULL)
+branch  0 never executed
+branch  1 never executed
+        -:  914:    {
+    #####:  915:        output = ensure(output_buffer, sizeof("\"\""));
+call    0 never executed
+    #####:  916:        if (output == NULL)
+branch  0 never executed
+branch  1 never executed
+        -:  917:        {
+    #####:  918:            return false;
+        -:  919:        }
+    #####:  920:        strcpy((char*)output, "\"\"");
+        -:  921:
+    #####:  922:        return true;
+        -:  923:    }
+        -:  924:
+        -:  925:    /* set "flag" to 1 if something needs to be escaped */
+    #####:  926:    for (input_pointer = input; *input_pointer; input_pointer++)
+branch  0 never executed
+branch  1 never executed
+        -:  927:    {
+    #####:  928:        switch (*input_pointer)
+branch  0 never executed
+branch  1 never executed
+        -:  929:        {
+    #####:  930:            case '\"':
+        -:  931:            case '\\':
+        -:  932:            case '\b':
+        -:  933:            case '\f':
+        -:  934:            case '\n':
+        -:  935:            case '\r':
+        -:  936:            case '\t':
+        -:  937:                /* one character escape sequence */
+    #####:  938:                escape_characters++;
+    #####:  939:                break;
+    #####:  940:            default:
+    #####:  941:                if (*input_pointer < 32)
+branch  0 never executed
+branch  1 never executed
+        -:  942:                {
+        -:  943:                    /* UTF-16 escape sequence uXXXX */
+    #####:  944:                    escape_characters += 5;
+        -:  945:                }
+    #####:  946:                break;
+        -:  947:        }
+        -:  948:    }
+    #####:  949:    output_length = (size_t)(input_pointer - input) + escape_characters;
+        -:  950:
+    #####:  951:    output = ensure(output_buffer, output_length + sizeof("\"\""));
+call    0 never executed
+    #####:  952:    if (output == NULL)
+branch  0 never executed
+branch  1 never executed
+        -:  953:    {
+    #####:  954:        return false;
+        -:  955:    }
+        -:  956:
+        -:  957:    /* no characters have to be escaped */
+    #####:  958:    if (escape_characters == 0)
+branch  0 never executed
+branch  1 never executed
+        -:  959:    {
+    #####:  960:        output[0] = '\"';
+    #####:  961:        memcpy(output + 1, input, output_length);
+    #####:  962:        output[output_length + 1] = '\"';
+    #####:  963:        output[output_length + 2] = '\0';
+        -:  964:
+    #####:  965:        return true;
+        -:  966:    }
+        -:  967:
+    #####:  968:    output[0] = '\"';
+    #####:  969:    output_pointer = output + 1;
+        -:  970:    /* copy the string */
+    #####:  971:    for (input_pointer = input; *input_pointer != '\0'; (void)input_pointer++, output_pointer++)
+branch  0 never executed
+branch  1 never executed
+        -:  972:    {
+    #####:  973:        if ((*input_pointer > 31) && (*input_pointer != '\"') && (*input_pointer != '\\'))
+branch  0 never executed
+branch  1 never executed
+branch  2 never executed
+branch  3 never executed
+branch  4 never executed
+branch  5 never executed
+        -:  974:        {
+        -:  975:            /* normal character, copy */
+    #####:  976:            *output_pointer = *input_pointer;
+        -:  977:        }
+        -:  978:        else
+        -:  979:        {
+        -:  980:            /* character needs to be escaped */
+    #####:  981:            *output_pointer++ = '\\';
+    #####:  982:            switch (*input_pointer)
+branch  0 never executed
+branch  1 never executed
+branch  2 never executed
+branch  3 never executed
+branch  4 never executed
+branch  5 never executed
+branch  6 never executed
+branch  7 never executed
+        -:  983:            {
+    #####:  984:                case '\\':
+    #####:  985:                    *output_pointer = '\\';
+    #####:  986:                    break;
+    #####:  987:                case '\"':
+    #####:  988:                    *output_pointer = '\"';
+    #####:  989:                    break;
+    #####:  990:                case '\b':
+    #####:  991:                    *output_pointer = 'b';
+    #####:  992:                    break;
+    #####:  993:                case '\f':
+    #####:  994:                    *output_pointer = 'f';
+    #####:  995:                    break;
+    #####:  996:                case '\n':
+    #####:  997:                    *output_pointer = 'n';
+    #####:  998:                    break;
+    #####:  999:                case '\r':
+    #####: 1000:                    *output_pointer = 'r';
+    #####: 1001:                    break;
+    #####: 1002:                case '\t':
+    #####: 1003:                    *output_pointer = 't';
+    #####: 1004:                    break;
+    #####: 1005:                default:
+        -: 1006:                    /* escape and print as unicode codepoint */
+    #####: 1007:                    sprintf((char*)output_pointer, "u%04x", *input_pointer);
+    #####: 1008:                    output_pointer += 4;
+    #####: 1009:                    break;
+        -: 1010:            }
+        -: 1011:        }
+        -: 1012:    }
+    #####: 1013:    output[output_length + 1] = '\"';
+    #####: 1014:    output[output_length + 2] = '\0';
+        -: 1015:
+    #####: 1016:    return true;
+        -: 1017:}
+        -: 1018:
+        -: 1019:/* Invoke print_string_ptr (which is useful) on an item. */
+function print_string called 0 returned 0% blocks executed 0%
+    #####: 1020:static cJSON_bool print_string(const cJSON * const item, printbuffer * const p)
+        -: 1021:{
+    #####: 1022:    return print_string_ptr((unsigned char*)item->valuestring, p);
+call    0 never executed
+        -: 1023:}
+        -: 1024:
+        -: 1025:/* Predeclare these prototypes. */
+        -: 1026:static cJSON_bool parse_value(cJSON * const item, parse_buffer * const input_buffer);
+        -: 1027:static cJSON_bool print_value(const cJSON * const item, printbuffer * const output_buffer);
+        -: 1028:static cJSON_bool parse_array(cJSON * const item, parse_buffer * const input_buffer);
+        -: 1029:static cJSON_bool print_array(const cJSON * const item, printbuffer * const output_buffer);
+        -: 1030:static cJSON_bool parse_object(cJSON * const item, parse_buffer * const input_buffer);
+        -: 1031:static cJSON_bool print_object(const cJSON * const item, printbuffer * const output_buffer);
+        -: 1032:
+        -: 1033:/* Utility to jump whitespace and cr/lf */
+function buffer_skip_whitespace called 43 returned 100% blocks executed 80%
+       43: 1034:static parse_buffer *buffer_skip_whitespace(parse_buffer  * const buffer)
+        -: 1035:{
+       43: 1036:    if ((buffer == NULL) || (buffer->content == NULL))
+branch  0 taken 43 (fallthrough)
+branch  1 taken 0
+branch  2 taken 0 (fallthrough)
+branch  3 taken 43
+        -: 1037:    {
+    #####: 1038:        return NULL;
+        -: 1039:    }
+        -: 1040:
+       43: 1041:    if (cannot_access_at_index(buffer, 0))
+branch  0 taken 43 (fallthrough)
+branch  1 taken 0
+branch  2 taken 0 (fallthrough)
+branch  3 taken 43
+        -: 1042:    {
+    #####: 1043:        return buffer;
+        -: 1044:    }
+        -: 1045:
+      125: 1046:    while (can_access_at_index(buffer, 0) && (buffer_at_offset(buffer)[0] <= 32))
+branch  0 taken 82 (fallthrough)
+branch  1 taken 0
+branch  2 taken 82 (fallthrough)
+branch  3 taken 0
+branch  4 taken 39
+branch  5 taken 43 (fallthrough)
+        -: 1047:    {
+       39: 1048:       buffer->offset++;
+        -: 1049:    }
+        -: 1050:
+       43: 1051:    if (buffer->offset == buffer->length)
+branch  0 taken 0 (fallthrough)
+branch  1 taken 43
+        -: 1052:    {
+    #####: 1053:        buffer->offset--;
+        -: 1054:    }
+        -: 1055:
+       43: 1056:    return buffer;
+        -: 1057:}
+        -: 1058:
+        -: 1059:/* skip the UTF-8 BOM (byte order mark) if it is at the beginning of a buffer */
+function skip_utf8_bom called 1 returned 100% blocks executed 80%
+        1: 1060:static parse_buffer *skip_utf8_bom(parse_buffer * const buffer)
+        -: 1061:{
+        1: 1062:    if ((buffer == NULL) || (buffer->content == NULL) || (buffer->offset != 0))
+branch  0 taken 1 (fallthrough)
+branch  1 taken 0
+branch  2 taken 1 (fallthrough)
+branch  3 taken 0
+branch  4 taken 0 (fallthrough)
+branch  5 taken 1
+        -: 1063:    {
+    #####: 1064:        return NULL;
+        -: 1065:    }
+        -: 1066:
+        1: 1067:    if (can_access_at_index(buffer, 4) && (strncmp((const char*)buffer_at_offset(buffer), "\xEF\xBB\xBF", 3) == 0))
+branch  0 taken 1 (fallthrough)
+branch  1 taken 0
+branch  2 taken 1 (fallthrough)
+branch  3 taken 0
+branch  4 taken 0 (fallthrough)
+branch  5 taken 1
+        -: 1068:    {
+    #####: 1069:        buffer->offset += 3;
+        -: 1070:    }
+        -: 1071:
+        1: 1072:    return buffer;
+        -: 1073:}
+        -: 1074:
+function cJSON_ParseWithOpts called 1 returned 100% blocks executed 75%
+        1: 1075:CJSON_PUBLIC(cJSON *) cJSON_ParseWithOpts(const char *value, const char **return_parse_end, cJSON_bool require_null_terminated)
+        -: 1076:{
+        -: 1077:    size_t buffer_length;
+        -: 1078:
+        1: 1079:    if (NULL == value)
+branch  0 taken 0 (fallthrough)
+branch  1 taken 1
+        -: 1080:    {
+    #####: 1081:        return NULL;
+        -: 1082:    }
+        -: 1083:
+        -: 1084:    /* Adding null character size due to require_null_terminated. */
+        1: 1085:    buffer_length = strlen(value) + sizeof("");
+        -: 1086:
+        1: 1087:    return cJSON_ParseWithLengthOpts(value, buffer_length, return_parse_end, require_null_terminated);
+call    0 returned 1
+        -: 1088:}
+        -: 1089:
+        -: 1090:/* Parse an object - create a new root, and populate. */
+function cJSON_ParseWithLengthOpts called 1 returned 100% blocks executed 56%
+        1: 1091:CJSON_PUBLIC(cJSON *) cJSON_ParseWithLengthOpts(const char *value, size_t buffer_length, const char **return_parse_end, cJSON_bool require_null_terminated)
+        -: 1092:{
+        1: 1093:    parse_buffer buffer = { 0, 0, 0, 0, { 0, 0, 0 } };
+        1: 1094:    cJSON *item = NULL;
+        -: 1095:
+        -: 1096:    /* reset error position */
+        1: 1097:    global_error.json = NULL;
+        1: 1098:    global_error.position = 0;
+        -: 1099:
+        1: 1100:    if (value == NULL || 0 == buffer_length)
+branch  0 taken 1 (fallthrough)
+branch

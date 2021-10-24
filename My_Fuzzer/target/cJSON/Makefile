@@ -1,8 +1,15 @@
-all: cJSON_test_case mj sy
+all : my ji mj sy ws 
+	gcc -o my/my --coverage my/cJSON.c my/my.c
+	gcc -o ji/ji --coverage ji/cJSON.c ji/ji.c
+	gcc -o mj/mj --coverage mj/cJSON.c mj/mj.c
+	gcc -o sy/sy --coverage sy/cJSON.c sy/sy.c
+	gcc -o ws/ws --coverage ws/cJSON.c ws/ws.c
 
+my :
+	gcc -o my/my --coverage my/cJSON.c my/my.c
 
-cJSON_test_case : cJSON.c cjson_test_case.c cJSON.h
-	gcc -o cjson_test_case --coverage cJSON.c cjson_test_case.c 
+ji :
+	gcc -o ji/ji --coverage ji/cJSON.c ji/ji.c
 
 mj :
 	gcc -o mj/mj --coverage mj/cJSON.c mj/mj.c
@@ -10,6 +17,10 @@ mj :
 sy :
 	gcc -o sy/sy --coverage sy/cJSON.c sy/sy.c
 
+ws :
+	gcc -o ws/ws --coverage ws/cJSON.c ws/ws.c
+
+
 clean : 
-	rm -rf cJSON_tester cjson_read_fuzzer /sy/sy mj/mj *.gc*
+	rm -rf my/my ji/ji ws/ws sy/sy mj/mj  */*.gc* 
  

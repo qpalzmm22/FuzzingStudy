@@ -576,9 +576,11 @@ union_branch_cov(unsigned short b_hash)
 			// if b_hash is not in the b_set, insert it
 			if(g_result->b_hashes[i] == b_hash)
 				return 0; 
+		}
 	}
 	g_result->b_hashes[g_result->tot_sets] = b_hash; 
 	g_result->tot_sets++;
+	printf("New HASH : %x\n", b_hash);
 	return 1;
 }
 
@@ -588,7 +590,7 @@ Description :
 Makes a log of fuzzing result. 
 The log file is created to `log_dir_path`.
 The log will be made in format of " trials, branch covered " in csv format 
-
+ 
 Expectation : 
 
 Return value : 
@@ -659,8 +661,8 @@ print_result()
 		//for(int i = 0 ; i < g_config->d_num_src_files; i++){
 			//printf("=                      File [%d] : %70s            =\n", i, g_config->src_path[i]);
 			//printf("               Total Branch (%%) : %55d / %d (%.4f %%)          \n",  g_result->pp_union_cov[i]->tot_branches_covered, g_result->pp_union_cov[i]->tot_branches,((double) g_result->pp_union_cov[i]->tot_branches_covered) * 100 / g_result->pp_union_cov[i]->tot_branches);
-			printf("=                                                                                                                   =\n");    
-		} 
+			//printf("=                                                                                                                   =\n");    
+	
 	} 
 	printf("=====================================================================================================================\n");
 	printf("\n\n");
@@ -816,7 +818,6 @@ fuzz_main(pConfig_t config)
 		g_result->tot_test_cases++;
 
 		unsigned short b_hash = gcov_multiple(g_config->src_path, g_config->d_num_src_files, g_config->src_dir_path); 
-
 		// Something is added to branch coverage
 		if(union_branch_cov(b_hash) > 0 ){
 			isBug = 0;

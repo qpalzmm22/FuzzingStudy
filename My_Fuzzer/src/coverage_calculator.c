@@ -80,6 +80,7 @@ read_gcov_coverage_with_bc_option(char * c_file)
 			}
             //printf("bmap[%d] : %d\n",branch_itr, bmap[branch_itr]);
         } 
+	}
     fclose(fp);
 
     return sdmb_hash(bmap);    
@@ -162,7 +163,7 @@ gcov_multiple(char ** src_array, int num_files, char * src_dir_path)
     char abs_file_path[PATH_MAX];
     char abs_dir_path[PATH_MAX];
 	
-	unsigned short b_hash_res = 0;
+	unsigned short b_hash_res = 0xa12b; // 
 
     for(int i = 0; i < num_files; i++) {
         sprintf(file_path, "%s/%s", src_dir_path, src_array[i]);
@@ -180,7 +181,8 @@ gcov_multiple(char ** src_array, int num_files, char * src_dir_path)
         }
         exec_gcov_with_bc_option(abs_file_path, abs_dir_path);
         // read coverage 
-		b_hash_res ^= read_gcov_coverage_with_bc_option(abs_file_path);
+		unsigned short b_has = read_gcov_coverage_with_bc_option(abs_file_path);
+		b_hash_res ^= b_has;
     }
     return b_hash_res;
 }

@@ -37,10 +37,11 @@ void make_argv();
 int default_oracle(int exit_code, char* input, int input_len, char* stdout_buff, char* stderr_buff);
 void init_fuzzer(pConfig_t config);
 
+void print_result(void);
+void write_log(char * log_dir_path, double time);
+
 void signal_handler(int sig);
 void fuzz_main(pConfig_t config);
 
-void print_result();
-void write_log(char * log_dir_path, double time);
 
 #endif /* !_HAVE_FUZZER_H_ */

@@ -8,6 +8,3 @@ bin/*
 !1_fuzzing_1/bin/.gitkeep
 !my_fuzzer/seed_corpus/*
 
-*.gcov
-*.gcda
-*.gcno
