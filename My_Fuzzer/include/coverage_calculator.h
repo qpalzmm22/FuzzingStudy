@@ -27,7 +27,7 @@ void
 print_branch_coverage(cov_info_t ** pb_info, int num_line_w_branches);
 
 unsigned short 
-read_gcov_coverage_with_bc_option(char * c_file);
+read_gcov_coverage_with_bc_option(char * c_file, cov_info_t * pcov_info);
 
 int
 get_file_names(char *src_dirpath, char ** src_array);
@@ -36,7 +36,7 @@ int
 remove_gcda(char *filepath);
 
 unsigned short
-gcov_multiple(char ** src_array, int num_files, char * src_dir_path);
+gcov_multiple(char ** src_array, int num_files, char * src_dir_path, cov_info_t ** pcov_info);
 
 char *
 extract_filename(char *filepath);

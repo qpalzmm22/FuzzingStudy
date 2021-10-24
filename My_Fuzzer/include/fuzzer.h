@@ -27,7 +27,7 @@
 
 char * create_tmp_dirs();
 
-int union_branch_cov(unsigned short b_hash);
+int union_branch_cov(cov_info_t ** pp_cov_info);
 
 void make_input_files(char* str, int len, char *in_data_path);
 int exec_process(char * str, int len, int itr, char *out_path, char *err_path);

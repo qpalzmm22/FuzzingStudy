@@ -15,7 +15,7 @@ main(){
     config.max_trial = 5000;
     config.timeout = 100000;
 
-    
+
     for(int i = 0; i < 5; i++){
         fuzz_main(&config);
     }

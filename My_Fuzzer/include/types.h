@@ -1,7 +1,7 @@
 #ifndef _HAVE_TYPES_H_
 #define _HAVE_TYPES_H_
 
-#define MAX_BRANCH 65535 // size of unsigned short
+#define MAX_BRANCH 65536 // size of unsigned short
 #define MAX_LINE_IN_FILE 1024
 
 #define MAX_SEED_FILES 1024
@@ -52,14 +52,15 @@ typedef struct _in_config{
     int max_mutation ;
 }in_config_t;
 
-typedef struct seed_t{
+typedef struct _seed_t{
     //char * str;
     char str[MAX_SEED_LEN];
     int len;
+	int freq;
     double energy;
 } seed_t;
 
-typedef struct seed_info_t{
+typedef struct _seed_info_t{
     int num_seed ;
     int init_num_seed ; 
     seed_t seeds[MAX_SEED_FILES] ; // weight inforamtion is stored
@@ -137,7 +138,10 @@ typedef struct _result{
     double exec_time;
     int char_n ;
     int tot_sets;
+	int tot_branches;
+	int tot_branches_covered;
     unsigned short b_hashes[MAX_BRANCH];
+	cov_info_t ** pp_union_cov;
 }result_t ,*pResult_t;
 
 

@@ -1,0 +1,103 @@
+        -:    0:Source:mj.c
+        -:    0:Graph:/home/qpalzmm22/FuzzingStudy/My_Fuzzer/target/cJSON/mj/mj.gcno
+        -:    0:Data:/home/qpalzmm22/FuzzingStudy/My_Fuzzer/target/cJSON/mj/mj.gcda
+        -:    0:Runs:1
+        -:    0:Programs:1
+        -:    1:#include <stdio.h>
+        -:    2:#include <stdlib.h>
+        -:    3:#include <stdint.h>
+        -:    4:#include <string.h>
+        -:    5:
+        -:    6:#include "cJSON.h"
+        -:    7:
+        -:    8:int Parse_Print_Minify(const uint8_t* data, size_t size); /* required by C89 */
+        -:    9:
+function Parse_Print_Minify called 1 returned 100% blocks executed 27%
+        1:   10:int Parse_Print_Minify(const uint8_t* data, size_t size)
+        -:   11:{
+        -:   12:	cJSON *json;
+        -:   13:	unsigned char *copied;
+        1:   14:	char *printed_json = NULL;
+        -:   15:
+        1:   16:	if(data[size] != '\0'){
+branch  0 taken 0 (fallthrough)
+branch  1 taken 1
+    #####:   17:		printf("Buf should include NULL in the tail\n");  
+call    0 never executed
+    #####:   18:		return 0;
+        -:   19:	}
+        -:   20:	
+        -:   21:	// 1. Parsing
+        1:   22:	json = cJSON_ParseWithOpts((const char*)data, NULL, 1);
+call    0 returned 1
+        -:   23:	
+        1:   24:	if(json == NULL) {
+branch  0 taken 1 (fallthrough)
+branch  1 taken 0
+        1:   25:		printf("json is NULL \n");
+call    0 returned 1
+        1:   26:		return 0;
+        -:   27:	}
+        -:   28:
+        -:   29:	// 2. Printing
+    #####:   30:	printed_json = cJSON_PrintBuffered(json, 1, 1);
+call    0 never executed
+    #####:   31:	printf("[DEUBG] printed_json(buffered): %s\n", printed_json);
+call    0 never executed
+        -:   32:
+    #####:   33:	if(printed_json != NULL) free(printed_json);
+branch  0 never executed
+branch  1 never executed
+        -:   34:
+        -:   35:	// 3. Minifying
+    #####:   36:	copied = (unsigned char*)malloc(size);
+    #####:   37:	if(copied == NULL) return 3;
+branch  0 never executed
+branch  1 never executed
+    #####:   38:	memcpy(copied, data, size);
+    #####:   39:	cJSON_Minify((char*)copied);
+call    0 never executed
+        -:   40:
+    #####:   41:	printf("[DEBUG] Minifyed: %s\n", copied);
+call    0 never executed
+    #####:   42:	free(copied);
+        -:   43:
+        -:   44:	// 4. Get
+        -:   45:
+    #####:   46:	printf("[DEBUT] Number_value: %lf\n", cJSON_GetNumberValue(json));
+call    0 never executed
+call    1 never executed
+    #####:   47:	printf("[DEBUT] String_value: %s\n", cJSON_GetStringValue(json));
+call    0 never executed
+call    1 never executed
+        -:   48:		
+        -:   49:	// 5. Add
+        -:   50:
+    #####:   51:	cJSON_Delete(json);
+call    0 never executed
+    #####:   52:	return 0;
+        -:   53:}
+        -:   54:
+function main called 1 returned 100% blocks executed 100%
+        1:   55:int main(int argc, char **argv)
+        -:   56:{
+        1:   57:	char* buf = (char*)malloc(sizeof(char) * 8196);
+        1:   58:	size_t siz_buf = 0;
+        1:   59:	memset(buf, 0, 8196);
+        -:   60:
+      694:   61:	while((buf[siz_buf] = getc(stdin)) != EOF){
+call    0 returned 693
+branch  1 taken 692
+branch  2 taken 1 (fallthrough)
+      692:   62:		siz_buf++;
+        -:   63:	}
+        1:   64:	buf[siz_buf] = '\0';
+        -:   65:
+        -:   66:	int return_code;
+        -:   67:
+        1:   68:	return_code = Parse_Print_Minify((uint8_t*)buf, (size_t)siz_buf);
+call    0 returned 1
+        -:   69:	
+        1:   70:	free(buf);
+        1:   71:	return return_code;
+        -:   72:}

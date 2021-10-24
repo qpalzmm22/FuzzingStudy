@@ -46,9 +46,9 @@ print_branch_coverage(cov_info_t ** pp_cov_info, int num_files)
 
 // Returns 0 when there is no file named `c_file.gcov` is created. 
 unsigned short
-read_gcov_coverage_with_bc_option(char * c_file)
+read_gcov_coverage_with_bc_option(char * c_file, cov_info_t * pcov_info)
 {
-    char bmap[MAX_BRANCH] = {0};
+    char *bmap = pcov_info->bmap;
     char target_file[PATH_MAX];
     
     sprintf(target_file, "%s.gcov", c_file);
@@ -59,6 +59,8 @@ read_gcov_coverage_with_bc_option(char * c_file)
     }
     
 	int branch_itr = 0;
+	int tot_branches = 0;
+	int tot_branches_covered = 0;
  	char line[MAX_LINE_IN_FILE];
 
     while(fgets(line, MAX_LINE_IN_FILE, fp) != 0x0){
@@ -72,18 +74,28 @@ read_gcov_coverage_with_bc_option(char * c_file)
             }
 
             if(strncmp(tokens[2], "never", 5) == 0 ){
-                bmap[branch_itr] = 0; 
+                bmap[branch_itr] = '0'; 
             } else { 
                 int num = atoi(tokens[3]);
-				bmap[branch_itr] = 1;
-				// bmap[branch_itr] = (num > 0 ? 1 : 0);
+				if(num > 0){
+					bmap[branch_itr] = '1';
+					tot_branches_covered++;
+				}else{
+					bmap[branch_itr] = '0';
+				}
 			}
             //printf("bmap[%d] : %d\n",branch_itr, bmap[branch_itr]);
+			tot_branches++;
+			branch_itr++;
         } 
 	}
+	pcov_info->tot_branches = tot_branches ;
+	pcov_info->tot_branches_covered = tot_branches_covered ;
     fclose(fp);
-
-    return sdmb_hash(bmap);    
+	for(int i = 0 ; i < tot_branches ; i++){
+		printf("%c", bmap[i]);
+	}
+    return sdmb_hash(bmap);//, tot_branches);    
 }
 
 // Gets src_dirpath and iterate. Find all the files end with .c and add them to src_array
@@ -156,14 +168,14 @@ remove_gcda(char *filepath)
 }
 
 unsigned short
-gcov_multiple(char ** src_array, int num_files, char * src_dir_path)
+gcov_multiple(char ** src_array, int num_files, char * src_dir_path, cov_info_t ** ppcov_info)
 {
 	int tot_branches = 0;
     char file_path[PATH_MAX];
     char abs_file_path[PATH_MAX];
     char abs_dir_path[PATH_MAX];
 	
-	unsigned short b_hash_res = 0xa12b; // 
+	unsigned short b_hash_res = 0; // 
 
     for(int i = 0; i < num_files; i++) {
         sprintf(file_path, "%s/%s", src_dir_path, src_array[i]);
@@ -181,8 +193,7 @@ gcov_multiple(char ** src_array, int num_files, char * src_dir_path)
         }
         exec_gcov_with_bc_option(abs_file_path, abs_dir_path);
         // read coverage 
-		unsigned short b_has = read_gcov_coverage_with_bc_option(abs_file_path);
-		b_hash_res ^= b_has;
+		b_hash_res = read_gcov_coverage_with_bc_option(abs_file_path, ppcov_info[i]);
     }
     return b_hash_res;
 }

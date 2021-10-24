@@ -41,7 +41,8 @@ seed_init(pSeed_info_t seed_info, char * corpus_path)
         
         len = my_fread(tmp, MAX_SEED_LEN, fp);
         
-        add_seed(seed_info, tmp, len, INIT_SEED_ENERGY);     
+        int seed_ind = add_seed(seed_info, tmp, len, INIT_SEED_ENERGY); 
+		calc_energy(&seed_info->seeds[seed_ind]);
     }
     fclose(fp);
 }
@@ -51,9 +52,9 @@ seed_init(pSeed_info_t seed_info, char * corpus_path)
     Adds seed to seed list with given `energy`
     
     Return value : 
-    None
-*/
-void
+	index of newly cread seed
+ */
+int
 add_seed(pSeed_info_t seed_info, char * str, int len, int energy)
 {
 	//seed_info->seeds[seed_info->num_seed].str = (char *)a_malloc(sizeof(char) * (len + 1));
@@ -62,10 +63,14 @@ add_seed(pSeed_info_t seed_info, char * str, int len, int energy)
     seed_info->seeds[seed_info->num_seed].str[len] = '\0';
 
     seed_info->seeds[seed_info->num_seed].len = len;
+    
+	seed_info->seeds[seed_info->num_seed].freq = 1;
 
     seed_info->seeds[seed_info->num_seed].energy = energy;
 
     seed_info->num_seed++;
+	
+	return seed_info->num_seed - 1;
 }
 
 /*
@@ -119,6 +124,24 @@ make_seed_file(pSeed_info_t seed_info, char * corpus_path, char * str, int len, 
 }
 
 /*
+	Description :
+	Calculates energy for seed. 
+	e(s) = 1 / f(p(s))^a.   p(s) : path id, f(p) : freq
+	
+	Return value : 
+	none, energy is set in seed_info
+*/
+void
+calc_energy(seed_t * seed){
+	double a = 0.5;
+	
+	seed->energy = 1 / pow((double)seed->freq, a);
+}
+
+	
+
+
+/*
     Description : 
     Choose seed by distributed probabiltiy.
     O(3 * N)
@@ -127,7 +150,7 @@ make_seed_file(pSeed_info_t seed_info, char * corpus_path, char * str, int len, 
     seed_info->norm_energy tp be set.
 
     Return value : 
-    Isdandex of seeds to use in fuzzer loop.
+    Index of seeds to use in fuzzer loop.
 */
 int
 get_seed_ind(pSeed_info_t seed_info)
@@ -147,18 +170,22 @@ get_seed_ind(pSeed_info_t seed_info)
     // Calculate cumulative energy
     for(int i = 0; i < seed_info->num_seed; i++){
         seed_t seed = seed_info->seeds[i];
-        if(seed.energy < min_energy){
+        
+		if(seed.energy < min_energy){
             min_energy = seed.energy;
         }
         energy_sum += seed.energy;
         cumul_energy[i] = energy_sum;
     }
-    double magnify_val = PERCENT_MODIFIER / energy_sum;
-    double selected = rand() % (PERCENT_MODIFIER + 1); 
+    //double magnify_val = PERCENT_MODIFIER / energy_sum;
+	double magnify_val = 1 / min_energy;
+	printf("%lf, %lf\n", magnify_val, energy_sum * magnify_val);
+    double selected = rand() % ( (int)(energy_sum * magnify_val) + 1); 
 
     for(int i = 0; i < seed_info->num_seed; i++){
-        if(magnify_val * cumul_energy[i] < selected){
+        if(magnify_val * cumul_energy[i] > selected){
             index =  i ;
+			printf("[%d]freq: %d, energy : %lf\n", i, seed_info->seeds[i].freq, seed_info->seeds[i].energy);
             return index; 
         }
     }

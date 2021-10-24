@@ -85,9 +85,9 @@ a_malloc(size_t nsize)
 	2 byte long hash short 
 */
 unsigned short
-sdmb_hash(char * str)
+sdmb_hash(char * str)//, int size)
 {
-	unsigned short hash;
+	unsigned short hash = 0;
 	int c;
 	while(c = *str++){
 		hash = c + (hash << 6) + (hash << 16) - hash; 
@@ -97,14 +97,15 @@ sdmb_hash(char * str)
 
 #ifdef DEBUG
 int main(){
-	char str[4];
-	str[0] = 1;
-	str[1] = 1;
-	str[2] = 1;
-	str[3] = 1;
+	char str[5];
+	str[0] = '1';
+	str[1] = '0';
+	str[2] = '1';
+	str[3] = '0';
+	str[4] = '0';
 
-	printf("str: 0x%x\n", str);
-	printf("HASH : 0x%x\n", sdmb_hash(str));
+	printf("str: 0x%x\n", *str);
+	printf("HASH : 0x%x\n", sdmb_hash(str,5));
 	return 0;
 }
 

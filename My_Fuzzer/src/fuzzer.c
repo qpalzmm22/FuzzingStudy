@@ -515,7 +515,17 @@ set_config(pConfig_t config){
 	g_result->char_n = 0;
 
 	g_result->tot_sets = 0; 
+	g_result->tot_branches = 0;
+	g_result->tot_branches_covered = 0;
 
+	g_result->pp_union_cov = (cov_info_t **) a_malloc(g_config->d_num_src_files * sizeof(cov_info_t *));
+
+	for(int i = 0; i < g_config->d_num_src_files ; i++){
+		g_result->pp_union_cov[i] = (cov_info_t *) a_calloc(sizeof(cov_info_t));
+		g_result->pp_union_cov[i];
+	}
+
+		
 
 	signal(SIGALRM, signal_handler);
 }
@@ -533,56 +543,45 @@ Return value :
 Return 1 if union has made change to original set
 Return 0 if not.
 */
-//int
-//union_branch_cov(cov_info_t ** pp_cov_info)
-//{
-//	g_result->tot_branches = 0;
-//	int inc_flag = 0;
-//	for(int i = 0 ; i < g_config->d_num_src_files ; i++){
-//		for(int j = 0 ; j < pp_cov_info[i]->tot_branches; j++ ){
-//			if(g_result->pp_union_cov[i]->bmap[j] == 0 && pp_cov_info[i]->bmap[j] > 0){
-//				inc_flag = 1;
-//				g_result->pp_union_cov[i]->bmap[j] = 1;
-//				g_result->pp_union_cov[i]->tot_branches_covered++;
-//				g_result->tot_branches_covered++;
-//			}
-//		}
-//		//g_result->pp_union_cov[i]->tot_branches_covered = pp_cov_info[i]->tot_branches_covered;
-//		g_result->pp_union_cov[i]->tot_branches = pp_cov_info[i]->tot_branches;
-//		g_result->tot_branches += pp_cov_info[i]->tot_branches;
-//
-//	}
+int
+union_branch_cov(cov_info_t ** pp_cov_info)
+{
+	g_result->tot_branches = 0;
+	int inc_flag = 0;
+	for(int i = 0 ; i < g_config->d_num_src_files ; i++){
+		for(int j = 0 ; j < pp_cov_info[i]->tot_branches; j++ ){
+			if(g_result->pp_union_cov[i]->bmap[j] == 0 && pp_cov_info[i]->bmap[j] == '1'){
+				g_result->pp_union_cov[i]->bmap[j] = '1';
+				g_result->pp_union_cov[i]->tot_branches_covered++;
+				g_result->tot_branches_covered++;
+				inc_flag = 1;
+			}
+		}
+		//g_result->pp_union_cov[i]->tot_branches_covered = pp_cov_info[i]->tot_branches_covered;
+		g_result->pp_union_cov[i]->tot_branches = pp_cov_info[i]->tot_branches;
+		g_result->tot_branches += pp_cov_info[i]->tot_branches;
+	}
+	return inc_flag ;
+}
 
 /*
-Description : 
-Union coverage information for g_result->pp_union_cov with input, `pp_cov_info`
-While at it, it also continuously copies the other infomation 
-like number of brances or number of bracnches covered
+Description :
+Checks if it's a new hash
 
-Expectation : 
-
-Return value : 
-Return 1 if union has made change to original set
-Return 0 if not.
+Return Value:
+1 if true
+0 if false
 */
 int
-union_branch_cov(unsigned short b_hash)
-{
-	int inc_flag = 0;
-	
-	for(int i = 0 ; i < g_config->d_num_src_files ; i++){
-		// Q. Make it a heap..?
-		for(int j = 0 ; i < g_result->tot_sets ; i++){
-			// if b_hash is not in the b_set, insert it
-			if(g_result->b_hashes[i] == b_hash)
-				return 0; 
-		}
+is_new_hash(unsigned short b_hash){
+	for(int i = 0; i < g_result->tot_sets; i++){
+		if( g_result->b_hashes[i] == b_hash)
+			return 0;
 	}
-	g_result->b_hashes[g_result->tot_sets] = b_hash; 
-	g_result->tot_sets++;
-	printf("New HASH : %x\n", b_hash);
+	g_result->b_hashes[g_result->tot_sets++] = b_hash;
 	return 1;
 }
+
 
 
 /*
@@ -602,9 +601,9 @@ write_log(char * log_dir_path, double time)
 	char log[MAX_LOG_LEN];
 	char log_path[PATH_MAX];
 
-	int cov_1 = g_result->tot_sets;
+	int cov_1 = g_result->pp_union_cov[0]->tot_branches_covered;
 
-	sprintf(log, "%d, %d\n", g_itr, cov_1);
+	sprintf(log, "%d, %d\n", g_itr, cov_1 );
 	sprintf(log_path, "%s/log.csv", log_dir_path); 
 
 	FILE * fp ;
@@ -656,12 +655,14 @@ print_result()
 
 	if(g_config->fuzz_mode == M_SRC || g_config->fuzz_mode == M_COMPILED_BIN){
 		printf("= ---------------------------------------------------- COVERAGE --------------------------------------------------- =\n");
-		printf("=               Branch Coverage : %70d             =\n", g_result->tot_sets);
+		printf("=                Number of Sets : %70d 		           =\n", g_result->tot_sets);
+		printf("=               Branch Coverage : %70.3f %%		       =\n", ((double)g_result->tot_branches_covered) * 100 / g_result->tot_branches);
 		printf("=                                                                                                                   =\n");
-		//for(int i = 0 ; i < g_config->d_num_src_files; i++){
-			//printf("=                      File [%d] : %70s            =\n", i, g_config->src_path[i]);
-			//printf("               Total Branch (%%) : %55d / %d (%.4f %%)          \n",  g_result->pp_union_cov[i]->tot_branches_covered, g_result->pp_union_cov[i]->tot_branches,((double) g_result->pp_union_cov[i]->tot_branches_covered) * 100 / g_result->pp_union_cov[i]->tot_branches);
-			//printf("=                                                                                                                   =\n");    
+		for(int i = 0 ; i < g_config->d_num_src_files; i++){
+			printf("=                      File [%d] : %70s            =\n", i, g_config->src_path[i]);
+			printf("               Total Branch (%%) : %55d / %d (%.4f %%)          \n",  g_result->pp_union_cov[i]->tot_branches_covered, g_result->pp_union_cov[i]->tot_branches,((double) g_result->pp_union_cov[i]->tot_branches_covered) * 100 / g_result->pp_union_cov[i]->tot_branches);
+			printf("=                                                                                                                   =\n");  
+		}
 	
 	} 
 	printf("=====================================================================================================================\n");
@@ -685,13 +686,20 @@ exit_protocol()
 
 	print_result();
 
-	free(g_result);
 
 	for(int i = 0; i < g_config->d_num_src_files; i++){
 		free(g_config->src_path[i]);
 	}
 	free(g_config->src_path);
 
+
+	for(int i = 0; i < g_config->d_num_src_files; i++){
+		free(g_result->pp_union_cov[i]);
+	}
+
+	free(g_result->pp_union_cov);
+	
+	free(g_result);
 	free(g_config->prog_argv);
 
 	//for(int i = 0; i < g_seed_info->num_seed; i++){
@@ -707,7 +715,7 @@ Depending on the signal, it will whether teminate child process orexit the progr
 
 Return value : none
  */
-	void
+void
 signal_handler(int sig)
 {
 	if(sig == SIGALRM){
@@ -729,7 +737,7 @@ TODO
 
 Return value : none
  */
-	void
+void
 fuzz_main(pConfig_t config)
 {
 	
@@ -737,7 +745,7 @@ fuzz_main(pConfig_t config)
 	set_config(config);
 
 	clock_t loop_end;
-
+	
 	if(g_config == 0x0){
 		fprintf(stderr, "You must init first\n");
 		exit(1);
@@ -779,8 +787,9 @@ fuzz_main(pConfig_t config)
 
 			// TODO : How should I allocate sufficient amount of memory for random string input
 
-			//seed_ind = get_seed_ind(g_seed_info);
-			seed_ind = (i-1) % g_seed_info->num_seed;
+			seed_ind = get_seed_ind(g_seed_info);
+			printf("seed_ind : %d\n", seed_ind);
+			//seed_ind = (i-1) % g_seed_info->num_seed;
 
 			len = get_seed_str(g_seed_info, rand_str, seed_ind);
 #ifdef DEBUG
@@ -817,9 +826,13 @@ fuzz_main(pConfig_t config)
 		}
 		g_result->tot_test_cases++;
 
-		unsigned short b_hash = gcov_multiple(g_config->src_path, g_config->d_num_src_files, g_config->src_dir_path); 
+		unsigned short b_hash = gcov_multiple(g_config->src_path, g_config->d_num_src_files, g_config->src_dir_path, cov_info); 
+		printf("hash%d : %x\n", g_result->tot_sets, b_hash);
+		
+		union_branch_cov( cov_info ); 
+		
 		// Something is added to branch coverage
-		if(union_branch_cov(b_hash) > 0 ){
+		if(is_new_hash(b_hash) > 0 ){
 			isBug = 0;
 			char new_seed_file[NAME_MAX];
 
@@ -829,9 +842,13 @@ fuzz_main(pConfig_t config)
 
 			if(g_config->box_mode == M_GREY) {
 				make_seed_file(g_seed_info, g_config->seed_path, rand_str, len, g_seed_info->num_seed);
-				add_seed(g_seed_info, rand_str, len, INIT_SEED_ENERGY);
+				int new_seed_ind = add_seed(g_seed_info, rand_str, len, INIT_SEED_ENERGY);
+				calc_energy(&(g_seed_info->seeds[new_seed_ind]));
 			}
 			//print_result();
+		}else {
+			g_seed_info->seeds[seed_ind].freq++;
+			calc_energy(&g_seed_info->seeds[seed_ind]);
 		}
 
 
