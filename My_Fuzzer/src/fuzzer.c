@@ -732,7 +732,7 @@ Return value : none
 	void
 fuzz_main(pConfig_t config)
 {
-	double tot_exec = 0;	
+	
 	
 	set_config(config);
 
@@ -797,7 +797,7 @@ fuzz_main(pConfig_t config)
 #endif
 
 		//alarm(g_config->hang_timeout);
-		clock_t exec_start = clock();
+		// clock_t exec_start = clock();
 	
 		int exit_code = exec_process(rand_str, len, i, out_buff, err_buff);
 
@@ -807,8 +807,8 @@ fuzz_main(pConfig_t config)
 		printf("err_buff : %s\n", err_buff);
 #endif
 
-		clock_t exec_end = clock();
-		tot_exec += (double) (exec_end - exec_start) / CLOCKS_PER_SEC; 
+		//clock_t exec_end = clock();
+		//g_result->exec_time += (double) (exec_end - exec_start) / CLOCKS_PER_SEC; 
 
 		if( !g_config->oracle(exit_code, rand_str, len, out_buff, err_buff)) {
 			g_result->bugs++;  
@@ -852,10 +852,8 @@ fuzz_main(pConfig_t config)
 
 	}
 
-	printf("tot_exec : %f\n", tot_exec);
 	loop_end = clock();
 	g_result->exec_time = ((double)loop_end - loop_start) / CLOCKS_PER_SEC; 
-	
 
 	// TODO : free in signal handler?
 	free_N((void**)cov_info, g_config->d_num_src_files);
