@@ -7,7 +7,7 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <assert.h>
-#include <linux/limits.h>
+#include <limits.h>
 
 void exec_gcc_coverage(char *filepath, char* binpath);
 void exec_bin(char **argv, char * prog_path);

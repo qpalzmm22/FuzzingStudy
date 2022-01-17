@@ -16,7 +16,7 @@
 
 #define DEL_SEED 1 // 
 
-#include <linux/limits.h>
+#include <limits.h>
 
 enum box_mode{
     /* 0 */ M_GREY, // greybox mode(default)

@@ -14,8 +14,8 @@ main(){
 	strcpy(config.prog_path, "/home/qpalzmm22/FuzzingStudy/My_Fuzzer/target/cJSON/cjson_test_case");
     strcpy(config.src_dir_path, "/home/qpalzmm22/FuzzingStudy/My_Fuzzer/target/cJSON/");
     
-    config.max_trial = 5000;
-    config.timeout = 100000;
+    config.max_trial = 360000;
+    config.timeout = 1000000000;
 
     for(int i = 0; i < 5; i++){
         fuzz_main(&config);

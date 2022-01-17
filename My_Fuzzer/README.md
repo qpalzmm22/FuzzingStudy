@@ -11,7 +11,6 @@ See `config.h`. Here, you can change the settings of fuzzer. Before start, YOU M
 
 - Things To consider
   - How to receive configs -> with `config.h` file. Is this ok??
-  - 
   - Config
     - Fuzzer config
       - Time interrupt timing
@@ -41,7 +40,6 @@ See `config.h`. Here, you can change the settings of fuzzer. Before start, YOU M
       - how to make Oracle generic
   
 - TODO lists
-  - Oracles
   - review code
   - Make file only if they are reasonable.
 
